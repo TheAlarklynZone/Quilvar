@@ -1,5 +1,4 @@
-# Quilvar - Store your clips. Paste with precision. 
-### App Coming Soon!
+# Quilvar - Store your clips. Paste with precision
 
 ---
 
