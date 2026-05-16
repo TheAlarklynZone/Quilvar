@@ -1,7 +1,5 @@
 # Quilvar - Store your clips. Paste with precision
 
----
-
 ## What is Quilvar?
 
 Quilvar is a **lightweight clipboard layer** that enhances your native system clipboard — without breaking it.
