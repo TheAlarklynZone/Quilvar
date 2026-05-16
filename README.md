@@ -158,10 +158,8 @@ The full cursed name archive is available for those brave enough to seek it.
 ---
 
 ## Credits
-
 Designed and created by **Alarkius Elvya Jay**  
 Part of the [TheAlarklynZone](https://github.com/TheAlarklynZone) project suite  
-Prepared with [Perplexity Computer](https://perplexity.ai) · May 2026
 
 ---
 
