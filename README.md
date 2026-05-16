@@ -1,4 +1,5 @@
-# Quilvar - Store your clips. Paste with precision. App Coming Soon!
+# Quilvar - Store your clips. Paste with precision. 
+### App Coming Soon!
 
 A lightweight cross-platform clipboard manager for Windows, macOS, and Linux.  
 Built for writers, developers, and everyone who's ever lost a copied snippet.
