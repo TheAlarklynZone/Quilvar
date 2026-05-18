@@ -10,7 +10,6 @@ interface ClipCardProps {
 
 export function ClipCard({ clip, onCopy, onDelete, onTogglePin }: ClipCardProps) {
   const [copied, setCopied] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleCopy() {
     onCopy();
