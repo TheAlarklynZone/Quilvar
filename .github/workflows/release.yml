@@ -58,7 +58,32 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Quilvar ${{ github.ref_name }}'
-          releaseBody: '🩶 Quilvar ${{ github.ref_name }} — See the full changelog in the README.'
+          releaseBody: |
+            🪶 **Quilvar ${{ github.ref_name }}**
+
+            ---
+
+            ## 🪟 Windows
+            | File | Description |
+            |------|-------------|
+            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_x64-setup.exe` | Installer *(recommended)* |
+            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_x64_en-US.msi` | MSI installer *(enterprise/advanced)* |
+
+            ## 🍎 macOS
+            | File | Description |
+            |------|-------------|
+            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_aarch64.dmg` | Apple Silicon — M1/M2/M3 *(recommended)* |
+            | `Quilvar_aarch64.app.tar.gz` | Apple Silicon — updater format |
+
+            ## 🐧 Linux
+            | File | Description |
+            |------|-------------|
+            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_amd64.AppImage` | Universal — any distro *(recommended)* |
+            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_amd64.deb` | Debian / Ubuntu |
+            | `Quilvar-${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}-1.x86_64.rpm` | Fedora / RHEL / openSUSE |
+
+            ---
+            > `.sig` files are used internally by the auto-updater — you don't need to download them manually.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
