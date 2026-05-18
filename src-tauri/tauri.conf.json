@@ -1,6 +1,6 @@
 {
   "productName": "Quilvar",
-  "version": "0.1.9",
+  "version": "0.1.0",
   "identifier": "com.thealarklynzone.quilvar",
   "build": {
     "frontendDist": "../dist",
