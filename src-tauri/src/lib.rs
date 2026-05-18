@@ -95,21 +95,14 @@ pub fn run() {
 
             Ok(())
         })
-        // Hide to tray instead of closing — applies to EVERY window close/minimize
-        .on_window_event(|window, event| match event {
-            WindowEvent::CloseRequested { api, .. } => {
-                // Only intercept the main window; let quickdraw just hide
+        // Hide to tray on close — Tauri 2.x has no Minimized event, CloseRequested covers hide-to-tray
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" || window.label() == "quickdraw" {
                     api.prevent_close();
                     let _ = window.hide();
                 }
             }
-            WindowEvent::Minimized(_) => {
-                if window.label() == "main" {
-                    let _ = window.hide();
-                }
-            }
-            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_clips,
