@@ -31,7 +31,7 @@ pub fn run() {
             // Build tray icon
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Quilvar \u2014 Store your clips. Paste with precision.")
+                .tooltip("Quilvar — Store your clips. Paste with precision.")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
