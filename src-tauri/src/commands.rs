@@ -1,55 +1,62 @@
-use crate::db::{self, Clip, DbState};
-use tauri::State;
-uuid::uuid;
-
-fn word_count(s: &str) -> i64 {
-    s.split_whitespace().count() as i64
-}
+use tauri::AppHandle;
+use tauri_plugin_updater::UpdaterExt;
 
 #[tauri::command]
-pub fn get_clips(state: State<DbState>) -> Result<Vec<Clip>, String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    db::get_all_clips(&conn).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn add_clip(content: String, state: State<DbState>) -> Result<Clip, String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-
-    // Duplicate check — ignore if already exists
-    if db::is_duplicate(&conn, &content).map_err(|e| e.to_string())? {
-        return Err("duplicate".to_string());
+pub async fn check_for_update(app: AppHandle) -> Result<Option<String>, String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await {
+        Ok(Some(update)) => Ok(Some(update.version.to_string())),
+        Ok(None) => Ok(None),
+        Err(e) => Err(e.to_string()),
     }
+}
 
-    let clip = Clip {
-        id:         uuid::Uuid::new_v4().to_string(),
-        content:    content.clone(),
-        timestamp:  chrono::Utc::now().timestamp_millis(),
-        pinned:     false,
-        pin_label:  None,
-        quiver_id:  None,
-        word_count: word_count(&content),
-        char_count: content.len() as i64,
-    };
+use crate::db;
+use rusqlite::Connection;
+use std::sync::Mutex;
 
-    db::insert_clip(&conn, &clip).map_err(|e| e.to_string())?;
-    Ok(clip)
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Clip {
+    pub id: String,
+    pub content: String,
+    pub content_type: String,
+    pub created_at: String,
+    pub pinned: bool,
+    pub source_app: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[tauri::command]
-pub fn delete_clip(id: String, state: State<DbState>) -> Result<(), String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    db::delete_clip_by_id(&conn, &id).map_err(|e| e.to_string())
+pub fn get_clips(
+    app: AppHandle,
+    limit: Option<i64>,
+    search: Option<String>,
+) -> Result<Vec<Clip>, String> {
+    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
+    db::get_clips(&conn, limit.unwrap_or(50), search).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn toggle_pin(id: String, state: State<DbState>) -> Result<(), String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    // Get current pin status
-    let clips = db::get_all_clips(&conn).map_err(|e| e.to_string())?;
-    let current = clips.iter().find(|c| c.id == id)
-        .ok_or("clip not found")?;
-    db::set_pin(&conn, &id, !current.pinned).map_err(|e| e.to_string())
+pub fn add_clip(
+    app: AppHandle,
+    content: String,
+    content_type: String,
+    source_app: Option<String>,
+) -> Result<Clip, String> {
+    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
+    db::add_clip(&conn, content, content_type, source_app).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn delete_clip(app: AppHandle, id: String) -> Result<(), String> {
+    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
+    db::delete_clip(&conn, &id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn toggle_pin(app: AppHandle, id: String) -> Result<bool, String> {
+    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
+    db::toggle_pin(&conn, &id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -60,11 +67,7 @@ pub fn copy_to_clipboard(content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_stats(state: State<DbState>) -> Result<serde_json::Value, String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    let clips = db::get_all_clips(&conn).map_err(|e| e.to_string())?;
-    Ok(serde_json::json!({
-        "total": clips.len(),
-        "pinned": clips.iter().filter(|c| c.pinned).count(),
-    }))
+pub fn get_stats(app: AppHandle) -> Result<serde_json::Value, String> {
+    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
+    db::get_stats(&conn).map_err(|e| e.to_string())
 }

@@ -8,6 +8,7 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
@@ -52,6 +53,7 @@ pub fn run() {
             commands::toggle_pin,
             commands::copy_to_clipboard,
             commands::get_stats,
+            commands::check_for_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Quilvar");
