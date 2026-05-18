@@ -67,12 +67,6 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Show main window now that tray is ready
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-
             // Register global shortcut: Shift + Alt + V
             let handle = app.handle().clone();
             app.global_shortcut().on_shortcut(
