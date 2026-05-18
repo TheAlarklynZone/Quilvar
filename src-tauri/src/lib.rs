@@ -15,13 +15,11 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec![]),
-        ))
         .setup(|app| {
-            // Initialize database
-            db::init(app.handle())?;
+            // Initialize database — wrapped so a DB error logs but doesn't kill the app
+            if let Err(e) = db::init(app.handle()) {
+                eprintln!("[quilvar] db init error: {e}");
+            }
 
             // Build tray menu
             let show_item = MenuItem::with_id(app, "show", "Show Quilvar", true, None::<&str>)?;
@@ -31,7 +29,7 @@ pub fn run() {
             // Build tray icon
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Quilvar — Store your clips. Paste with precision.")
+                .tooltip("Quilvar")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
@@ -69,11 +67,8 @@ pub fn run() {
 
             // Register global shortcut: Shift + Alt + V
             let handle = app.handle().clone();
-            app.global_shortcut().on_shortcut(
-                Shortcut::new(
-                    Some(Modifiers::SHIFT | Modifiers::ALT),
-                    Code::KeyV,
-                ),
+            if let Err(e) = app.global_shortcut().on_shortcut(
+                Shortcut::new(Some(Modifiers::SHIFT | Modifiers::ALT), Code::KeyV),
                 move |_app, _shortcut, _event| {
                     if let Some(window) = handle.get_webview_window("quickdraw") {
                         if window.is_visible().unwrap_or(false) {
@@ -84,9 +79,11 @@ pub fn run() {
                         }
                     }
                 },
-            )?;
+            ) {
+                eprintln!("[quilvar] shortcut registration error: {e}");
+            }
 
-            // Start clipboard watcher
+            // Start clipboard watcher in background
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 clipboard::watch(app_handle).await;
