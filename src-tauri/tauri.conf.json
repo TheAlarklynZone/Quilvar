@@ -21,7 +21,7 @@
         "closable": true,
         "decorations": true,
         "center": true,
-        "visible": true
+        "visible": false
       },
       {
         "label": "quickdraw",
