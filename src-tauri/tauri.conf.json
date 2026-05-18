@@ -37,11 +37,6 @@
         "transparent": true
       }
     ],
-    "trayIcon": {
-      "iconPath": "icons/tray-icon.png",
-      "iconAsTemplate": true,
-      "tooltip": "Quilvar \u2014 Store your clips. Paste with precision."
-    },
     "security": {
       "csp": null
     }
