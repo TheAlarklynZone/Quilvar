@@ -48,7 +48,7 @@ jobs:
         run: npm install
 
       - name: Generate icons
-        run: node generate-icons.js
+        run: node generate-icons.cjs
 
       - name: Build and release Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -58,7 +58,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Quilvar ${{ github.ref_name }}'
-          releaseBody: '🪶 Quilvar ${{ github.ref_name }} — See the full changelog in the README.'
+          releaseBody: '🩶 Quilvar ${{ github.ref_name }} — See the full changelog in the README.'
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
