@@ -1,5 +1,7 @@
 use tauri::AppHandle;
 use tauri_plugin_updater::UpdaterExt;
+use crate::db::{self, DbState, Clip};
+use tauri::Manager;
 
 #[tauri::command]
 pub async fn check_for_update(app: AppHandle) -> Result<Option<String>, String> {
@@ -11,52 +13,70 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<String>, String> 
     }
 }
 
-use crate::db;
-use rusqlite::Connection;
-use std::sync::Mutex;
-
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
-pub struct Clip {
-    pub id: String,
-    pub content: String,
-    pub content_type: String,
-    pub created_at: String,
-    pub pinned: bool,
-    pub source_app: Option<String>,
-    pub tags: Option<Vec<String>>,
-}
-
 #[tauri::command]
 pub fn get_clips(
     app: AppHandle,
-    limit: Option<i64>,
-    search: Option<String>,
+    _limit: Option<i64>,
+    _search: Option<String>,
 ) -> Result<Vec<Clip>, String> {
-    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
-    db::get_clips(&conn, limit.unwrap_or(50), search).map_err(|e| e.to_string())
+    let state = app.state::<DbState>();
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::get_all_clips(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn add_clip(
     app: AppHandle,
     content: String,
-    content_type: String,
-    source_app: Option<String>,
+    _content_type: Option<String>,
+    _source_app: Option<String>,
 ) -> Result<Clip, String> {
-    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
-    db::add_clip(&conn, content, content_type, source_app).map_err(|e| e.to_string())
+    let state = app.state::<DbState>();
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+
+    // Ignore duplicates
+    if db::is_duplicate(&conn, &content).unwrap_or(false) {
+        // Return the existing top clip instead
+        let clips = db::get_all_clips(&conn).map_err(|e| e.to_string())?;
+        if let Some(c) = clips.into_iter().find(|c| c.content == content) {
+            return Ok(c);
+        }
+    }
+
+    let trimmed = content.trim().to_string();
+    let clip = Clip {
+        id:         uuid::Uuid::new_v4().to_string(),
+        content:    trimmed.clone(),
+        timestamp:  chrono::Utc::now().timestamp_millis(),
+        pinned:     false,
+        pin_label:  None,
+        quiver_id:  None,
+        word_count: trimmed.split_whitespace().count() as i64,
+        char_count: trimmed.len() as i64,
+    };
+
+    db::insert_clip(&conn, &clip).map_err(|e| e.to_string())?;
+    Ok(clip)
 }
 
 #[tauri::command]
 pub fn delete_clip(app: AppHandle, id: String) -> Result<(), String> {
-    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
-    db::delete_clip(&conn, &id).map_err(|e| e.to_string())
+    let state = app.state::<DbState>();
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::delete_clip_by_id(&conn, &id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn toggle_pin(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
-    db::toggle_pin(&conn, &id).map_err(|e| e.to_string())
+    let state = app.state::<DbState>();
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+
+    // Get current pin state then flip it
+    let clips = db::get_all_clips(&conn).map_err(|e| e.to_string())?;
+    let current = clips.iter().find(|c| c.id == id).map(|c| c.pinned).unwrap_or(false);
+    let new_state = !current;
+    db::set_pin(&conn, &id, new_state).map_err(|e| e.to_string())?;
+    Ok(new_state)
 }
 
 #[tauri::command]
@@ -68,6 +88,11 @@ pub fn copy_to_clipboard(content: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_stats(app: AppHandle) -> Result<serde_json::Value, String> {
-    let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
-    db::get_stats(&conn).map_err(|e| e.to_string())
+    let state = app.state::<DbState>();
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let clips = db::get_all_clips(&conn).map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({
+        "total": clips.len(),
+        "pinned": clips.iter().filter(|c| c.pinned).count(),
+    }))
 }

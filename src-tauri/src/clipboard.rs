@@ -1,13 +1,13 @@
-use crate::db::{DbState};
-use clipboard_rs::{Clipboard, ClipboardContext, ClipboardWatcher, ClipboardWatcherContext};
+use crate::db::DbState;
+use clipboard_rs::{Clipboard, ClipboardContext, ClipboardWatcher, ClipboardWatcherContext, ClipboardHandler};
 use tauri::{AppHandle, Manager, Emitter};
 
-pub async fn watch(app: AppHandle) {
-    let app_for_cb = app.clone();
+struct ClipWatchHandler {
+    app: AppHandle,
+}
 
-    let mut watcher = ClipboardWatcherContext::new().unwrap();
-
-    watcher.add_handler(clipboard_rs::CallbackFn(Box::new(move || {
+impl ClipboardHandler for ClipWatchHandler {
+    fn on_clipboard_change(&mut self) {
         let ctx = match ClipboardContext::new() {
             Ok(c) => c,
             Err(_) => return,
@@ -21,11 +21,10 @@ pub async fn watch(app: AppHandle) {
         let trimmed = text.trim().to_string();
         if trimmed.is_empty() { return; }
 
-        // Check for duplicate before saving
-        if let Some(state) = app_for_cb.try_state::<DbState>() {
+        if let Some(state) = self.app.try_state::<DbState>() {
             if let Ok(conn) = state.0.lock() {
                 if crate::db::is_duplicate(&conn, &trimmed).unwrap_or(false) {
-                    return; // Ignore duplicates silently
+                    return;
                 }
 
                 let clip = crate::db::Clip {
@@ -40,15 +39,22 @@ pub async fn watch(app: AppHandle) {
                 };
 
                 if crate::db::insert_clip(&conn, &clip).is_ok() {
-                    // Notify the frontend that a new clip was added
-                    let _ = app_for_cb.emit("clip-added", &clip);
+                    let _ = self.app.emit("clip-added", &clip);
                 }
             }
         }
-    })));
+    }
+}
+
+pub async fn watch(app: AppHandle) {
+    let mut watcher = match ClipboardWatcherContext::new() {
+        Ok(w) => w,
+        Err(_) => return,
+    };
+
+    watcher.add_handler(ClipWatchHandler { app });
 
     let _stop = watcher.start_watch();
-    // Keep watcher alive indefinitely
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
     }
