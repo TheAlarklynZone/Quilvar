@@ -1,6 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { check } from '@tauri-apps/plugin-updater';
+import { check, type DownloadEvent } from '@tauri-apps/plugin-updater';
 
 export interface UpdateStatus {
   checking: boolean;
@@ -29,7 +28,7 @@ export async function downloadAndInstall(
   const update = await check();
   if (!update?.available) return;
 
-  await update.downloadAndInstall((event) => {
+  await update.downloadAndInstall((event: DownloadEvent) => {
     if (event.event === 'Progress' && onProgress) {
       onProgress(event.data.chunkLength, event.data.contentLength ?? null);
     }
