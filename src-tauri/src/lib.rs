@@ -47,7 +47,6 @@ pub fn run() {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    // Left-click tray icon to toggle window
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
@@ -67,6 +66,12 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // Show main window now that tray is ready
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
 
             // Register global shortcut: Shift + Alt + V
             let handle = app.handle().clone();
@@ -95,7 +100,7 @@ pub fn run() {
 
             Ok(())
         })
-        // Hide to tray on close — Tauri 2.x has no Minimized event, CloseRequested covers hide-to-tray
+        // Hide to tray on close
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" || window.label() == "quickdraw" {
