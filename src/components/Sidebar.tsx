@@ -1,11 +1,12 @@
 import type { View } from "../App";
+import type { ReactElement } from "react";
 
 interface SidebarProps {
   currentView: View;
   onNavigate: (view: View) => void;
 }
 
-const navItems: { id: View; label: string; icon: JSX.Element }[] = [
+const navItems: { id: View; label: string; icon: ReactElement }[] = [
   {
     id: "history",
     label: "History",
@@ -79,7 +80,7 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <span className="sidebar-version">v0.1.0</span>
+        <span className="sidebar-version">v0.1.1</span>
       </div>
     </aside>
   );
