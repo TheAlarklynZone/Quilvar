@@ -15,7 +15,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install node-gyp globally
         run: npm install -g node-gyp
@@ -45,10 +44,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+
+      - name: Install node-gyp globally
+        run: npm install -g node-gyp
 
       - name: Install dependencies
         run: npm install
+        env:
+          npm_config_build_from_source: true
 
       - name: Build Vite + Electron (macOS)
         env:
@@ -70,13 +73,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install Linux build dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential python3 libsqlite3-dev
 
+      - name: Install node-gyp globally
+        run: npm install -g node-gyp
+
       - name: Install dependencies
         run: npm install
+        env:
+          npm_config_build_from_source: true
 
       - name: Build Vite + Electron (Linux)
         env:
