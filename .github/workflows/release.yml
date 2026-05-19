@@ -23,12 +23,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Rebuild native modules for Electron
-        run: npx @electron/rebuild -f -w better-sqlite3
-
       - name: Build Vite + Electron (Windows)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_build_from_source: 'true'
         run: npm run electron:build:win
 
       - name: Upload Windows artifacts
@@ -54,12 +52,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Rebuild native modules for Electron
-        run: npx @electron/rebuild -f -w better-sqlite3
-
       - name: Build Vite + Electron (macOS)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_build_from_source: 'true'
         run: npm run electron:build:mac
 
       - name: Upload macOS artifacts
@@ -88,12 +84,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Rebuild native modules for Electron
-        run: npx @electron/rebuild -f -w better-sqlite3
-
       - name: Build Vite + Electron (Linux)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_build_from_source: 'true'
         run: npm run electron:build:linux
 
       - name: Upload Linux artifacts
