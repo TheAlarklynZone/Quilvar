@@ -16,11 +16,15 @@ jobs:
         with:
           node-version: 20
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: npm install
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild -f -w better-sqlite3
+        run: npx @electron/rebuild -f -w better-sqlite3
 
       - name: Build Vite + Electron (Windows)
         env:
@@ -43,11 +47,15 @@ jobs:
         with:
           node-version: 20
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: npm install
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild -f -w better-sqlite3
+        run: npx @electron/rebuild -f -w better-sqlite3
 
       - name: Build Vite + Electron (macOS)
         env:
@@ -70,14 +78,18 @@ jobs:
         with:
           node-version: 20
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install Linux build dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential python3 libsqlite3-dev
+        run: sudo apt-get update && sudo apt-get install -y build-essential libsqlite3-dev
 
       - name: Install dependencies
         run: npm install
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild -f -w better-sqlite3
+        run: npx @electron/rebuild -f -w better-sqlite3
 
       - name: Build Vite + Electron (Linux)
         env:
