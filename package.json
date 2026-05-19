@@ -15,7 +15,8 @@
     "electron:build": "vite build && electron-builder",
     "electron:build:win": "vite build && electron-builder --win",
     "electron:build:mac": "vite build && electron-builder --mac",
-    "electron:build:linux": "vite build && electron-builder --linux"
+    "electron:build:linux": "vite build && electron-builder --linux",
+    "electron:rebuild": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",
@@ -36,7 +37,8 @@
     "@tailwindcss/vite": "^4.0.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.2",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "electron-rebuild": "^3.2.9"
   },
   "build": {
     "appId": "com.thealarklynzone.quilvar",
