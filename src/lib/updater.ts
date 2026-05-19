@@ -1,5 +1,5 @@
-import { relaunch } from '@tauri-apps/plugin-process';
-import { check } from '@tauri-apps/plugin-updater';
+// Updater via electron-updater (handled in main process)
+// Renderer communicates through electronAPI IPC
 
 export interface UpdateStatus {
   checking: boolean;
@@ -11,12 +11,9 @@ export interface UpdateStatus {
 
 export async function checkForUpdates(): Promise<{ available: boolean; version: string | null }> {
   try {
-    const update = await check();
-    if (update?.available) {
-      return { available: true, version: update.version };
-    }
-    return { available: false, version: null };
-  } catch (e) {
+    const result = await window.electronAPI.checkForUpdates();
+    return result;
+  } catch (e: any) {
     console.error('Update check failed:', e);
     return { available: false, version: null };
   }
@@ -25,20 +22,13 @@ export async function checkForUpdates(): Promise<{ available: boolean; version: 
 export async function downloadAndInstall(
   onProgress?: (downloaded: number, total: number | null) => void
 ): Promise<void> {
-  const update = await check();
-  if (!update?.available) return;
-
-  let downloaded = 0;
-  let total: number | null = null;
-
-  await update.downloadAndInstall((event) => {
-    if (event.event === 'Started') {
-      total = (event.data as any).contentLength ?? null;
-    } else if (event.event === 'Progress') {
-      downloaded += (event.data as any).chunkLength ?? 0;
+  try {
+    window.electronAPI.onUpdateProgress((downloaded: number, total: number | null) => {
       if (onProgress) onProgress(downloaded, total);
-    }
-  });
-
-  await relaunch();
+    });
+    await window.electronAPI.downloadAndInstall();
+  } catch (e: any) {
+    console.error('Update install failed:', e);
+    throw e;
+  }
 }
