@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, clipboard, ipcMain, globalShortcut, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, clipboard, ipcMain, globalShortcut } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const db = require('./db');
 
@@ -15,10 +16,7 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
 }
 
@@ -48,15 +46,10 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
 
-  // Hide to tray instead of closing
   mainWindow.on('close', (e) => {
-    if (!app.isQuitting) {
-      e.preventDefault();
-      mainWindow.hide();
-    }
+    if (!app.isQuitting) { e.preventDefault(); mainWindow.hide(); }
   });
 
-  // Hide to tray on minimize
   mainWindow.on('minimize', (e) => {
     e.preventDefault();
     mainWindow.hide();
@@ -78,50 +71,59 @@ function createTray() {
   tray.setToolTip('Quilvar — Store your clips. Paste with precision.');
 
   const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Show Quilvar',
-      click: () => {
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    },
+    { label: 'Show Quilvar', click: () => { mainWindow.show(); mainWindow.focus(); } },
     { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.isQuitting = true;
-        app.quit();
-      }
-    }
+    { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } }
   ]);
 
   tray.setContextMenu(contextMenu);
-
-  // Left-click tray icon to toggle window
   tray.on('click', () => {
-    if (mainWindow.isVisible()) {
-      mainWindow.hide();
-    } else {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    if (mainWindow.isVisible()) { mainWindow.hide(); }
+    else { mainWindow.show(); mainWindow.focus(); }
   });
 }
 
 // ── Clipboard watcher ─────────────────────────────────────────────────────────
 function startClipboardWatcher() {
   lastClipText = clipboard.readText();
-
   clipboardWatcher = setInterval(() => {
     const text = clipboard.readText();
     if (text && text !== lastClipText && text.trim().length > 0) {
       lastClipText = text;
       const clip = db.addClip(text);
-      if (mainWindow && clip) {
-        mainWindow.webContents.send('clip:new', clip);
-      }
+      if (mainWindow && clip) mainWindow.webContents.send('clip:new', clip);
     }
   }, 500);
+}
+
+// ── Auto updater ────────────────────────────────────────────────────────────────
+function setupAutoUpdater() {
+  if (isDev) return; // skip updater in dev
+  autoUpdater.autoDownload = false;
+
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('updater:available', { version: info.version });
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    if (mainWindow) mainWindow.webContents.send('updater:not-available');
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWindow) mainWindow.webContents.send('updater:progress', {
+      downloaded: progress.transferred,
+      total: progress.total,
+    });
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    if (mainWindow) mainWindow.webContents.send('updater:downloaded');
+    autoUpdater.quitAndInstall();
+  });
+
+  autoUpdater.on('error', (err) => {
+    if (mainWindow) mainWindow.webContents.send('updater:error', err.message);
+  });
 }
 
 // ── IPC handlers ──────────────────────────────────────────────────────────────
@@ -131,27 +133,34 @@ function registerIPC() {
   ipcMain.handle('clips:toggle-pin', (_, id) => db.togglePin(id));
   ipcMain.handle('clips:copy', (_, content) => {
     clipboard.writeText(content);
-    lastClipText = content; // prevent re-capture
+    lastClipText = content;
     return true;
   });
-  ipcMain.handle('app:quit', () => {
-    app.isQuitting = true;
-    app.quit();
-  });
+  ipcMain.handle('app:quit', () => { app.isQuitting = true; app.quit(); });
   ipcMain.handle('app:version', () => app.getVersion());
+
+  // Updater IPC
+  ipcMain.handle('updater:check', async () => {
+    if (isDev) return { available: false, version: null };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      const available = !!result?.updateInfo?.version && result.updateInfo.version !== app.getVersion();
+      return { available, version: result?.updateInfo?.version ?? null };
+    } catch {
+      return { available: false, version: null };
+    }
+  });
+  ipcMain.handle('updater:download', () => {
+    if (!isDev) autoUpdater.downloadUpdate();
+  });
 }
 
 // ── Global shortcut (QuickDraw) ───────────────────────────────────────────────
 function registerShortcuts() {
   globalShortcut.register('Shift+Alt+V', () => {
     if (mainWindow) {
-      if (mainWindow.isVisible() && mainWindow.isFocused()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-        mainWindow.focus();
-        mainWindow.webContents.send('quickdraw:open');
-      }
+      if (mainWindow.isVisible() && mainWindow.isFocused()) { mainWindow.hide(); }
+      else { mainWindow.show(); mainWindow.focus(); mainWindow.webContents.send('quickdraw:open'); }
     }
   });
 }
@@ -164,25 +173,18 @@ app.whenReady().then(() => {
   createTray();
   registerShortcuts();
   startClipboardWatcher();
+  setupAutoUpdater();
 
   app.on('activate', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
 });
 
-app.on('window-all-closed', (e) => {
-  // Never quit on window close — stay alive in tray
-  e.preventDefault();
-});
+app.on('window-all-closed', (e) => { e.preventDefault(); });
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   if (clipboardWatcher) clearInterval(clipboardWatcher);
 });
 
-app.on('before-quit', () => {
-  app.isQuitting = true;
-});
+app.on('before-quit', () => { app.isQuitting = true; });
