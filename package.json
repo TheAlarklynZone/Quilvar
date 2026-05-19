@@ -19,7 +19,7 @@
     "electron:rebuild": "@electron/rebuild -f -w better-sqlite3"
   },
   "dependencies": {
-    "better-sqlite3": "^8.7.0",
+    "better-sqlite3": "^11.0.0",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.3.9",
     "auto-launch": "^5.0.6"
