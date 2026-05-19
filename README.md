@@ -154,4 +154,4 @@ Part of the [TheAlarklynZone](https://github.com/TheAlarklynZone) project suite
 
 ---
 
-*Quilvar — fantasy-tech enough to feel like Alaria. Clean enough to ship.*
+*Quilvar — fantasy-tech enough to feel like Alarkius' other apps. Clean enough to ship.*
