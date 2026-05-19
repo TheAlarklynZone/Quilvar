@@ -1,4 +1,4 @@
-name: Release Quilvar
+name: Release
 
 on:
   push:
@@ -6,84 +6,101 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-          - platform: macos-latest
-            args: '--target x86_64-apple-darwin'
-          - platform: ubuntu-22.04
-            args: ''
-          - platform: windows-latest
-            args: ''
-
-    runs-on: ${{ matrix.platform }}
-
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
+          cache: npm
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Install frontend dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Generate icons
-        run: node generate-icons.cjs
+      - name: Build Vite + Electron (Windows)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run electron:build:win
 
-      - name: Build and release Tauri app
-        uses: tauri-apps/tauri-action@v0
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: release/*.exe
+
+  build-mac:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Vite + Electron (macOS)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run electron:build:mac
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build
+          path: release/*.dmg
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Vite + Electron (Linux)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run electron:build:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            release/*.AppImage
+            release/*.deb
+
+  release:
+    name: Create GitHub Release
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Quilvar ${{ github.ref_name }}'
-          releaseBody: |
-            🪶 **Quilvar ${{ github.ref_name }}**
-
-            ---
-
-            ## 🪟 Windows
-            | File | Description |
-            |------|-------------|
-            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_x64-setup.exe` | Installer *(recommended)* |
-            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_x64_en-US.msi` | MSI installer *(enterprise/advanced)* |
-
-            ## 🍎 macOS
-            | File | Description |
-            |------|-------------|
-            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_aarch64.dmg` | Apple Silicon — M1/M2/M3 *(recommended)* |
-            | `Quilvar_aarch64.app.tar.gz` | Apple Silicon — updater format |
-
-            ## 🐧 Linux
-            | File | Description |
-            |------|-------------|
-            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_amd64.AppImage` | Universal — any distro *(recommended)* |
-            | `Quilvar_${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}_amd64.deb` | Debian / Ubuntu |
-            | `Quilvar-${{ github.ref_name != '' && github.ref_name || 'v0.1.0' }}-1.x86_64.rpm` | Fedora / RHEL / openSUSE |
-
-            ---
-            > `.sig` files are used internally by the auto-updater — you don't need to download them manually.
-          releaseDraft: true
-          prerelease: false
-          includeUpdaterJson: true
