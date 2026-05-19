@@ -1,8 +1,23 @@
-import { useState, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, useCallback, useEffect } from "react";
 import type { Clip, Quiver } from "../types/clip";
 
-// Simple in-memory store — persisted via Rust backend (tauri-plugin-store)
+// Typed electronAPI from preload
+declare global {
+  interface Window {
+    electronAPI: {
+      getClips: () => Promise<Clip[]>;
+      deleteClip: (id: string) => Promise<boolean>;
+      togglePin: (id: string) => Promise<Clip>;
+      copyClip: (content: string) => Promise<boolean>;
+      quit: () => Promise<void>;
+      getVersion: () => Promise<string>;
+      onNewClip: (cb: (clip: Clip) => void) => void;
+      onQuickDrawOpen: (cb: () => void) => void;
+      removeAllListeners: (channel: string) => void;
+    };
+  }
+}
+
 let _clips: Clip[] = [];
 let _quivers: Quiver[] = [];
 let _listeners: Array<() => void> = [];
@@ -20,55 +35,54 @@ export function useClipStore() {
     return () => { _listeners = _listeners.filter((l) => l !== fn); };
   }, []);
 
+  // Listen for new clips pushed from main process
+  useEffect(() => {
+    window.electronAPI.onNewClip((clip) => {
+      const exists = _clips.find((c) => c.id === clip.id);
+      if (!exists) {
+        _clips = [clip, ..._clips];
+      } else {
+        _clips = _clips.map((c) => c.id === clip.id ? clip : c);
+      }
+      notify();
+    });
+    return () => window.electronAPI.removeAllListeners('clip:new');
+  }, []);
+
   const loadClips = useCallback(async () => {
     try {
-      const data = await invoke<Clip[]>("get_clips");
+      const data = await window.electronAPI.getClips();
       _clips = data;
       notify();
     } catch (e) {
-      console.error("Failed to load clips:", e);
-    }
-  }, []);
-
-  const addClip = useCallback(async (content: string) => {
-    // Ignore duplicates — if top clip matches, skip
-    if (_clips.length > 0 && _clips[0].content === content) return;
-    try {
-      const clip = await invoke<Clip>("add_clip", { content });
-      _clips = [clip, ..._clips];
-      notify();
-    } catch (e) {
-      console.error("Failed to add clip:", e);
+      console.error('Failed to load clips:', e);
     }
   }, []);
 
   const deleteClip = useCallback(async (id: string) => {
     try {
-      await invoke("delete_clip", { id });
+      await window.electronAPI.deleteClip(id);
       _clips = _clips.filter((c) => c.id !== id);
       notify();
     } catch (e) {
-      console.error("Failed to delete clip:", e);
+      console.error('Failed to delete clip:', e);
     }
   }, []);
 
   const togglePin = useCallback(async (id: string) => {
     try {
-      await invoke("toggle_pin", { id });
-      _clips = _clips.map((c) =>
-        c.id === id ? { ...c, pinned: !c.pinned } : c
-      );
+      const updated = await window.electronAPI.togglePin(id);
+      _clips = _clips.map((c) => c.id === id ? updated : c);
       notify();
     } catch (e) {
-      console.error("Failed to toggle pin:", e);
+      console.error('Failed to toggle pin:', e);
     }
   }, []);
 
   const copyToClipboard = useCallback(async (content: string) => {
     try {
-      await invoke("copy_to_clipboard", { content });
-    } catch (e) {
-      // Fallback to web API
+      await window.electronAPI.copyClip(content);
+    } catch {
       await navigator.clipboard.writeText(content);
     }
   }, []);
@@ -78,7 +92,6 @@ export function useClipStore() {
     pinnedClips: _clips.filter((c) => c.pinned),
     quivers: _quivers,
     loadClips,
-    addClip,
     deleteClip,
     togglePin,
     copyToClipboard,

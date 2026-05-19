@@ -3,18 +3,23 @@ node_modules/
 
 # Build output
 dist/
+release/
 
-# Tauri build output
+# Tauri (legacy — removed)
 src-tauri/target/
 
-# Env files
+# Env
 .env
 .env.local
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/settings.json
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
 .idea/
