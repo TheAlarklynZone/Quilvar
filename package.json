@@ -108,14 +108,6 @@
       "icon": "build/icon.png",
       "category": "Utility"
     },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "TheAlarklynZone",
-        "repo": "Quilvar",
-        "releaseType": "release"
-      }
-    ],
     "buildDependenciesFromSource": true
   }
 }
