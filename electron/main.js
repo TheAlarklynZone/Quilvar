@@ -58,20 +58,34 @@ function createWindow() {
 
 // ── System tray ───────────────────────────────────────────────────────────────
 function createTray() {
-  // Try VAR.png first (the main app logo), then tray-icon.png, then build/icon.png
-  const iconCandidates = [
-    path.join(__dirname, '..', 'VAR.png'),
-    path.join(__dirname, '..', 'build', 'tray-icon.png'),
-    path.join(__dirname, '..', 'build', 'icon.png'),
-  ];
+  // Windows needs .ico for crisp tray rendering
+  // macOS & Linux use .png (nativeImage handles scaling)
+  const isWin = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+
+  const iconCandidates = isWin
+    ? [
+        path.join(__dirname, '..', 'build', 'icon.ico'),
+        path.join(__dirname, '..', 'build', 'icon.png'),
+      ]
+    : [
+        path.join(__dirname, '..', 'build', 'icon.png'),
+        path.join(__dirname, '..', 'build', 'tray-icon.png'),
+      ];
 
   let icon = nativeImage.createEmpty();
   for (const candidate of iconCandidates) {
     try {
       const img = nativeImage.createFromPath(candidate);
       if (!img.isEmpty()) {
-        // Resize to 16x16 for tray (looks crisp on all platforms)
-        icon = img.resize({ width: 16, height: 16 });
+        // macOS tray wants 16x16 or 18x18 marked as template
+        // Windows .ico already has all sizes embedded — don't resize
+        if (!isWin) {
+          icon = img.resize({ width: 16, height: 16 });
+          if (isMac) icon.setTemplateImage(true); // adapts to dark/light menubar
+        } else {
+          icon = img;
+        }
         break;
       }
     } catch { /* try next */ }
