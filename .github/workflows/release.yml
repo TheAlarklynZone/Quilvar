@@ -20,6 +20,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Sync version from tag
+        shell: bash
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          npm version $TAG --no-git-tag-version
+
       - name: Install dependencies
         run: npm install
 
@@ -49,6 +55,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Sync version from tag
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          npm version $TAG --no-git-tag-version
+
       - name: Install dependencies
         run: npm install
 
@@ -77,6 +88,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Sync version from tag
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          npm version $TAG --no-git-tag-version
 
       - name: Install Linux build dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libsqlite3-dev
