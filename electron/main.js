@@ -58,13 +58,23 @@ function createWindow() {
 
 // ── System tray ───────────────────────────────────────────────────────────────
 function createTray() {
-  const iconPath = path.join(__dirname, '..', 'build', 'tray-icon.png');
-  let icon;
-  try {
-    icon = nativeImage.createFromPath(iconPath);
-    if (icon.isEmpty()) throw new Error('empty');
-  } catch {
-    icon = nativeImage.createEmpty();
+  // Try VAR.png first (the main app logo), then tray-icon.png, then build/icon.png
+  const iconCandidates = [
+    path.join(__dirname, '..', 'VAR.png'),
+    path.join(__dirname, '..', 'build', 'tray-icon.png'),
+    path.join(__dirname, '..', 'build', 'icon.png'),
+  ];
+
+  let icon = nativeImage.createEmpty();
+  for (const candidate of iconCandidates) {
+    try {
+      const img = nativeImage.createFromPath(candidate);
+      if (!img.isEmpty()) {
+        // Resize to 16x16 for tray (looks crisp on all platforms)
+        icon = img.resize({ width: 16, height: 16 });
+        break;
+      }
+    } catch { /* try next */ }
   }
 
   tray = new Tray(icon);
@@ -98,29 +108,25 @@ function startClipboardWatcher() {
 
 // ── Auto updater ────────────────────────────────────────────────────────────────
 function setupAutoUpdater() {
-  if (isDev) return; // skip updater in dev
+  if (isDev) return;
   autoUpdater.autoDownload = false;
 
   autoUpdater.on('update-available', (info) => {
     if (mainWindow) mainWindow.webContents.send('updater:available', { version: info.version });
   });
-
   autoUpdater.on('update-not-available', () => {
     if (mainWindow) mainWindow.webContents.send('updater:not-available');
   });
-
   autoUpdater.on('download-progress', (progress) => {
     if (mainWindow) mainWindow.webContents.send('updater:progress', {
       downloaded: progress.transferred,
       total: progress.total,
     });
   });
-
   autoUpdater.on('update-downloaded', () => {
     if (mainWindow) mainWindow.webContents.send('updater:downloaded');
     autoUpdater.quitAndInstall();
   });
-
   autoUpdater.on('error', (err) => {
     if (mainWindow) mainWindow.webContents.send('updater:error', err.message);
   });
@@ -139,7 +145,6 @@ function registerIPC() {
   ipcMain.handle('app:quit', () => { app.isQuitting = true; app.quit(); });
   ipcMain.handle('app:version', () => app.getVersion());
 
-  // Updater IPC
   ipcMain.handle('updater:check', async () => {
     if (isDev) return { available: false, version: null };
     try {
