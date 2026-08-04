@@ -25,21 +25,21 @@ export function ClipList({ view, clips }: ClipListProps) {
   };
 
   return (
-    <div className="cliplist">
+    <div>
       {/* Header */}
-      <div className="cliplist-header">
-        <h1 className="cliplist-title">{viewLabel[view]}</h1>
-        <span className="cliplist-count">{filtered.length} clips</span>
+      <div className="clip-list-header">
+        <h1 className="clip-list-title">{viewLabel[view]}</h1>
+        <span className="clip-list-count">{filtered.length} clips</span>
       </div>
 
       {/* Search */}
-      <div className="cliplist-search">
+      <div className="clip-search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="8"/>
           <path d="m21 21-4.35-4.35"/>
         </svg>
         <input
-          className="cliplist-search-input"
+          className="clip-search-input"
           type="text"
           placeholder="Search clips…"
           value={searchQuery}
@@ -48,18 +48,18 @@ export function ClipList({ view, clips }: ClipListProps) {
       </div>
 
       {/* Clip cards */}
-      <div className="cliplist-items">
-        {filtered.length === 0 ? (
-          <div className="cliplist-empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-              <rect x="9" y="3" width="6" height="4" rx="1"/>
-            </svg>
-            <p>No clips yet</p>
-            <span>Copy something to get started!</span>
-          </div>
-        ) : (
-          filtered.map((clip) => (
+      {filtered.length === 0 ? (
+        <div className="clip-empty">
+          <svg className="clip-empty-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+          </svg>
+          <p>No clips yet</p>
+          <span>Copy something to get started!</span>
+        </div>
+      ) : (
+        <div className="clip-list">
+          {filtered.map((clip) => (
             <ClipCard
               key={clip.id}
               clip={clip}
@@ -67,9 +67,9 @@ export function ClipList({ view, clips }: ClipListProps) {
               onDelete={() => deleteClip(clip.id)}
               onTogglePin={() => togglePin(clip.id)}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

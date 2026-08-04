@@ -15,6 +15,11 @@ export default function App() {
     loadClips();
   }, []);
 
+  useEffect(() => {
+    window.electronAPI.onQuickDrawOpen(() => setQuickDrawOpen(true));
+    return () => window.electronAPI.removeAllListeners('quickdraw:open');
+  }, []);
+
   return (
     <div className="app-shell">
       {/* Quick Draw overlay — rendered on top */}
