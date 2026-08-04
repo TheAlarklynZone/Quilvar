@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useClipStore } from "../store/clips";
+import { formatTimeAgo } from "../lib/time";
 import type { Clip } from "../types/clip";
 
 interface QuickDrawProps {
@@ -52,27 +53,21 @@ export function QuickDraw({ clips, onClose }: QuickDrawProps) {
   }
 
   return (
-    <div className="quickdraw-backdrop" onClick={onClose}>
+    <div className="quick-draw-overlay" onClick={onClose}>
       <div
-        className="quickdraw-panel"
+        className="quick-draw-panel"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        {/* Header */}
-        <div className="quickdraw-header">
-          <span className="quickdraw-logo">⚡ Quick Draw</span>
-          <kbd className="quickdraw-kbd">ESC to close</kbd>
-        </div>
-
         {/* Search */}
-        <div className="quickdraw-search">
-          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="quick-draw-input-row">
+          <svg className="quick-draw-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.35-4.35"/>
           </svg>
           <input
             ref={inputRef}
-            className="quickdraw-input"
+            className="quick-draw-input"
             type="text"
             placeholder="Search clips..."
             value={query}
@@ -81,35 +76,35 @@ export function QuickDraw({ clips, onClose }: QuickDrawProps) {
         </div>
 
         {/* Results */}
-        <div className="quickdraw-results">
+        <div className="quick-draw-results">
           {filtered.length === 0 ? (
-            <div className="quickdraw-empty">No clips found</div>
+            <div className="quick-draw-empty">No clips found</div>
           ) : (
             filtered.slice(0, 8).map((clip, idx) => (
               <button
                 key={clip.id}
-                className={`quickdraw-item ${
-                  idx === selectedIdx ? "quickdraw-item--selected" : ""
+                className={`quick-draw-item ${
+                  idx === selectedIdx ? "quick-draw-item--focused" : ""
                 }`}
                 onClick={() => handleSelect(clip)}
                 onMouseEnter={() => setSelectedIdx(idx)}
               >
-                <span className="quickdraw-item-content">
+                <span className="quick-draw-item-text">
+                  {clip.pinned && "📌 "}
                   {clip.content.slice(0, 120)}
                   {clip.content.length > 120 ? "…" : ""}
                 </span>
-                <span className="quickdraw-item-meta">
-                  {clip.pinned && <span className="pin-badge">📌</span>}
-                  <span className="clip-chars">{clip.charCount}ch</span>
-                </span>
+                <span className="quick-draw-item-time">{formatTimeAgo(clip.timestamp)}</span>
               </button>
             ))
           )}
         </div>
 
         {/* Footer hint */}
-        <div className="quickdraw-footer">
-          <kbd>↑↓</kbd> navigate &nbsp;·&nbsp; <kbd>↵</kbd> copy &nbsp;·&nbsp; <kbd>ESC</kbd> close
+        <div className="quick-draw-hint">
+          <span><kbd>↑↓</kbd> navigate</span>
+          <span><kbd>↵</kbd> paste</span>
+          <span><kbd>esc</kbd> close</span>
         </div>
       </div>
     </div>

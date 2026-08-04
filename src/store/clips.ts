@@ -29,7 +29,8 @@ function notify() {
 export function useClipStore() {
   const [, rerender] = useState(0);
 
-  const subscribe = useCallback(() => {
+  // Re-render this component whenever the store's data changes.
+  useEffect(() => {
     const fn = () => rerender((n) => n + 1);
     _listeners.push(fn);
     return () => { _listeners = _listeners.filter((l) => l !== fn); };
@@ -95,6 +96,5 @@ export function useClipStore() {
     deleteClip,
     togglePin,
     copyToClipboard,
-    subscribe,
   };
 }

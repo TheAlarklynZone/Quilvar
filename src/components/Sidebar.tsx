@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { View } from "../App";
 import type { ReactElement } from "react";
 
@@ -48,6 +49,12 @@ const navItems: { id: View; label: string; icon: ReactElement }[] = [
 ];
 
 export function Sidebar({ currentView, onNavigate }: SidebarProps) {
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    window.electronAPI.getVersion().then(setVersion);
+  }, []);
+
   return (
     <aside className="sidebar">
       {/* Logo */}
@@ -80,7 +87,7 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <span className="sidebar-version">v0.1.1</span>
+        <span className="sidebar-version">{version && `v${version}`}</span>
       </div>
     </aside>
   );
