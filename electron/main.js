@@ -158,6 +158,7 @@ function registerIPC() {
   });
   ipcMain.handle('app:quit', () => { app.isQuitting = true; app.quit(); });
   ipcMain.handle('app:version', () => app.getVersion());
+  ipcMain.handle('app:storage-path', () => app.getPath('userData'));
 
   ipcMain.handle('updater:check', async () => {
     if (isDev) return { available: false, version: null };
@@ -172,16 +173,40 @@ function registerIPC() {
   ipcMain.handle('updater:download', () => {
     if (!isDev) autoUpdater.downloadUpdate();
   });
+
+  ipcMain.handle('quivers:get', () => db.getQuivers());
+  ipcMain.handle('quivers:create', (_, name) => db.createQuiver(name));
+  ipcMain.handle('quivers:rename', (_, id, name) => db.renameQuiver(id, name));
+  ipcMain.handle('quivers:delete', (_, id) => db.deleteQuiver(id));
+  ipcMain.handle('quivers:add-clip', (_, quiverId, clipId) => db.addClipToQuiver(quiverId, clipId));
+  ipcMain.handle('quivers:remove-clip', (_, quiverId, clipId) => db.removeClipFromQuiver(quiverId, clipId));
+
+  ipcMain.handle('vault:status', () => db.vaultStatus());
+  ipcMain.handle('vault:set-pin', (_, pin) => db.vaultSetPin(pin));
+  ipcMain.handle('vault:unlock', (_, pin) => db.vaultUnlock(pin));
+  ipcMain.handle('vault:lock', () => db.vaultLock());
+  ipcMain.handle('vault:get-clips', () => db.getVaultClips());
+  ipcMain.handle('vault:add', (_, clipId) => db.addToVault(clipId));
+  ipcMain.handle('vault:remove', (_, id) => db.removeFromVault(id));
+  ipcMain.handle('vault:restore', (_, id) => db.restoreFromVault(id));
 }
 
 // ── Global shortcut (QuickDraw) ───────────────────────────────────────────────
 function registerShortcuts() {
-  globalShortcut.register('Shift+Alt+V', () => {
+  const openQuickDraw = () => {
     if (mainWindow) {
       if (mainWindow.isVisible() && mainWindow.isFocused()) { mainWindow.hide(); }
       else { mainWindow.show(); mainWindow.focus(); mainWindow.webContents.send('quickdraw:open'); }
     }
-  });
+  };
+
+  // Shift+Alt+V is the primary shortcut on every platform, including macOS.
+  globalShortcut.register('Shift+Alt+V', openQuickDraw);
+
+  // macOS also gets the Cmd+Shift+V convention, in addition to the above.
+  if (process.platform === 'darwin') {
+    globalShortcut.register('Command+Shift+V', openQuickDraw);
+  }
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
