@@ -52,6 +52,7 @@
     "files": [
       "electron/**/*",
       "dist/**/*",
+      "build/**/*",
       "package.json"
     ],
     "extraMetadata": {
