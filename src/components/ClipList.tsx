@@ -2,33 +2,25 @@ import { useState } from "react";
 import { ClipCard } from "./ClipCard";
 import { useClipStore } from "../store/clips";
 import type { Clip } from "../types/clip";
-import type { View } from "../App";
 
 interface ClipListProps {
-  view: View;
+  title: string;
   clips: Clip[];
 }
 
-export function ClipList({ view, clips }: ClipListProps) {
+export function ClipList({ title, clips }: ClipListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { deleteClip, togglePin, copyToClipboard } = useClipStore();
+  const { deleteClip, togglePin, copyToClipboard, moveToVault } = useClipStore();
 
   const filtered = clips.filter((c) =>
     c.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const viewLabel: Record<View, string> = {
-    history: "History",
-    pinned: "Pinned Clips",
-    quivers: "Quivers",
-    settings: "Settings",
-  };
-
   return (
     <div>
       {/* Header */}
       <div className="clip-list-header">
-        <h1 className="clip-list-title">{viewLabel[view]}</h1>
+        <h1 className="clip-list-title">{title}</h1>
         <span className="clip-list-count">{filtered.length} clips</span>
       </div>
 
@@ -66,6 +58,7 @@ export function ClipList({ view, clips }: ClipListProps) {
               onCopy={() => copyToClipboard(clip.content)}
               onDelete={() => deleteClip(clip.id)}
               onTogglePin={() => togglePin(clip.id)}
+              onMoveToVault={() => moveToVault(clip.id)}
             />
           ))}
         </div>

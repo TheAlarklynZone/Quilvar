@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // App
   quit: () => ipcRenderer.invoke('app:quit'),
   getVersion: () => ipcRenderer.invoke('app:version'),
+  getStoragePath: () => ipcRenderer.invoke('app:storage-path'),
 
   // Updater
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
@@ -23,6 +24,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Events from main → renderer
   onNewClip: (cb) => ipcRenderer.on('clip:new', (_, clip) => cb(clip)),
   onQuickDrawOpen: (cb) => ipcRenderer.on('quickdraw:open', () => cb()),
+
+  // Quivers
+  getQuivers: () => ipcRenderer.invoke('quivers:get'),
+  createQuiver: (name) => ipcRenderer.invoke('quivers:create', name),
+  renameQuiver: (id, name) => ipcRenderer.invoke('quivers:rename', id, name),
+  deleteQuiver: (id) => ipcRenderer.invoke('quivers:delete', id),
+  addClipToQuiver: (quiverId, clipId) => ipcRenderer.invoke('quivers:add-clip', quiverId, clipId),
+  removeClipFromQuiver: (quiverId, clipId) => ipcRenderer.invoke('quivers:remove-clip', quiverId, clipId),
+
+  // Quilvault
+  vaultStatus: () => ipcRenderer.invoke('vault:status'),
+  vaultSetPin: (pin) => ipcRenderer.invoke('vault:set-pin', pin),
+  vaultUnlock: (pin) => ipcRenderer.invoke('vault:unlock', pin),
+  vaultLock: () => ipcRenderer.invoke('vault:lock'),
+  getVaultClips: () => ipcRenderer.invoke('vault:get-clips'),
+  addToVault: (clipId) => ipcRenderer.invoke('vault:add', clipId),
+  removeFromVault: (id) => ipcRenderer.invoke('vault:remove', id),
+  restoreFromVault: (id) => ipcRenderer.invoke('vault:restore', id),
 
   // Cleanup
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),

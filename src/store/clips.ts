@@ -11,15 +11,42 @@ declare global {
       copyClip: (content: string) => Promise<boolean>;
       quit: () => Promise<void>;
       getVersion: () => Promise<string>;
+      getStoragePath: () => Promise<string>;
       onNewClip: (cb: (clip: Clip) => void) => void;
       onQuickDrawOpen: (cb: () => void) => void;
       removeAllListeners: (channel: string) => void;
+
+      // Updater
+      checkForUpdates: () => Promise<{ available: boolean; version: string | null }>;
+      downloadAndInstall: () => Promise<void>;
+      onUpdateAvailable: (cb: (info: { version: string }) => void) => void;
+      onUpdateNotAvailable: (cb: () => void) => void;
+      onUpdateProgress: (cb: (downloaded: number, total: number | null) => void) => void;
+      onUpdateDownloaded: (cb: () => void) => void;
+      onUpdateError: (cb: (message: string) => void) => void;
+
+      // Quivers
+      getQuivers: () => Promise<Quiver[]>;
+      createQuiver: (name: string) => Promise<Quiver>;
+      renameQuiver: (id: string, name: string) => Promise<Quiver>;
+      deleteQuiver: (id: string) => Promise<boolean>;
+      addClipToQuiver: (quiverId: string, clipId: string) => Promise<Quiver>;
+      removeClipFromQuiver: (quiverId: string, clipId: string) => Promise<Quiver>;
+
+      // Quilvault
+      vaultStatus: () => Promise<{ hasPin: boolean; unlocked: boolean }>;
+      vaultSetPin: (pin: string) => Promise<boolean>;
+      vaultUnlock: (pin: string) => Promise<boolean>;
+      vaultLock: () => Promise<void>;
+      getVaultClips: () => Promise<Clip[]>;
+      addToVault: (clipId: string) => Promise<boolean>;
+      removeFromVault: (id: string) => Promise<boolean>;
+      restoreFromVault: (id: string) => Promise<Clip | null>;
     };
   }
 }
 
 let _clips: Clip[] = [];
-let _quivers: Quiver[] = [];
 let _listeners: Array<() => void> = [];
 
 function notify() {
@@ -88,13 +115,19 @@ export function useClipStore() {
     }
   }, []);
 
+  const moveToVault = useCallback(async (id: string) => {
+    await window.electronAPI.addToVault(id);
+    _clips = _clips.filter((c) => c.id !== id);
+    notify();
+  }, []);
+
   return {
     clips: _clips,
     pinnedClips: _clips.filter((c) => c.pinned),
-    quivers: _quivers,
     loadClips,
     deleteClip,
     togglePin,
     copyToClipboard,
+    moveToVault,
   };
 }
