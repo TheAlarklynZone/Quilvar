@@ -8,7 +8,11 @@ on:
 jobs:
   build-windows:
     name: Build Windows
-    runs-on: windows-latest
+    # Pinned: windows-latest moved to a newer Visual Studio release that this
+    # project's bundled node-gyp doesn't recognize yet (fails "unsupported
+    # version" during better-sqlite3's native rebuild even though VS is
+    # present). windows-2022 matches what v0.1.0-v0.1.3 built successfully on.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
