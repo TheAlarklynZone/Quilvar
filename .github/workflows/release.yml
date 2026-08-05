@@ -43,7 +43,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/latest.yml
 
   build-mac:
     name: Build macOS
@@ -77,7 +79,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: release/*.dmg
+          path: |
+            release/*.dmg
+            release/latest-mac.yml
 
   build-linux:
     name: Build Linux
@@ -117,6 +121,7 @@ jobs:
           path: |
             release/*.AppImage
             release/*.deb
+            release/latest-linux.yml
 
   release:
     name: Create GitHub Release
