@@ -3,7 +3,7 @@ import { checkForUpdates, downloadAndInstall } from '../lib/updater';
 
 export function UpdaterPanel() {
   const [status, setStatus] = useState<
-    'idle' | 'checking' | 'available' | 'up-to-date' | 'downloading' | 'error'
+    'idle' | 'checking' | 'available' | 'up-to-date' | 'downloading' | 'installing' | 'error'
   >('idle');
   const [newVersion, setNewVersion] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
@@ -33,6 +33,7 @@ export function UpdaterPanel() {
       await downloadAndInstall((downloaded, total) => {
         if (total) setProgress(Math.round((downloaded / total) * 100));
       });
+      setStatus('installing');
     } catch (e: any) {
       setErrorMsg(e?.message ?? 'Install failed');
       setStatus('error');
@@ -77,6 +78,12 @@ export function UpdaterPanel() {
             <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <p className="status-muted">Quilvar will restart automatically when done.</p>
+        </div>
+      )}
+
+      {status === 'installing' && (
+        <div className="status-ok">
+          <span>✅ Downloaded — restarting to install…</span>
         </div>
       )}
 

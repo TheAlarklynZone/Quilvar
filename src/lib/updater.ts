@@ -10,25 +10,29 @@ export interface UpdateStatus {
 }
 
 export async function checkForUpdates(): Promise<{ available: boolean; version: string | null }> {
-  try {
-    const result = await window.electronAPI.checkForUpdates();
-    return result;
-  } catch (e: any) {
-    console.error('Update check failed:', e);
-    return { available: false, version: null };
-  }
+  return window.electronAPI.checkForUpdates();
 }
 
-export async function downloadAndInstall(
+export function downloadAndInstall(
   onProgress?: (downloaded: number, total: number | null) => void
 ): Promise<void> {
-  try {
-    window.electronAPI.onUpdateProgress((downloaded: number, total: number | null) => {
-      if (onProgress) onProgress(downloaded, total);
+  // The 'updater:download' IPC call resolves as soon as the download
+  // *starts*, not when it finishes — the real outcome arrives later via
+  // these events from the main process, so that's what settles this promise.
+  window.electronAPI.removeAllListeners('updater:progress');
+  window.electronAPI.removeAllListeners('updater:downloaded');
+  window.electronAPI.removeAllListeners('updater:error');
+
+  return new Promise<void>((resolve, reject) => {
+    window.electronAPI.onUpdateProgress((downloaded, total) => {
+      onProgress?.(downloaded, total);
     });
-    await window.electronAPI.downloadAndInstall();
-  } catch (e: any) {
-    console.error('Update install failed:', e);
-    throw e;
-  }
+    window.electronAPI.onUpdateDownloaded(() => {
+      resolve();
+    });
+    window.electronAPI.onUpdateError((message) => {
+      reject(new Error(message));
+    });
+    window.electronAPI.downloadAndInstall().catch(reject);
+  });
 }

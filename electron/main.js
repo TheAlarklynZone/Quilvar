@@ -162,16 +162,16 @@ function registerIPC() {
 
   ipcMain.handle('updater:check', async () => {
     if (isDev) return { available: false, version: null };
-    try {
-      const result = await autoUpdater.checkForUpdates();
-      const available = !!result?.updateInfo?.version && result.updateInfo.version !== app.getVersion();
-      return { available, version: result?.updateInfo?.version ?? null };
-    } catch {
-      return { available: false, version: null };
-    }
+    // Let failures (network errors, no publish feed, etc.) propagate as a
+    // rejected IPC call so the renderer can show a real error instead of a
+    // false "you're up to date".
+    const result = await autoUpdater.checkForUpdates();
+    const available = !!result?.updateInfo?.version && result.updateInfo.version !== app.getVersion();
+    return { available, version: result?.updateInfo?.version ?? null };
   });
-  ipcMain.handle('updater:download', () => {
-    if (!isDev) autoUpdater.downloadUpdate();
+  ipcMain.handle('updater:download', async () => {
+    if (isDev) return;
+    await autoUpdater.downloadUpdate();
   });
 
   ipcMain.handle('quivers:get', () => db.getQuivers());
