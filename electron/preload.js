@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Clips
   getClips: () => ipcRenderer.invoke('clips:get'),
   deleteClip: (id) => ipcRenderer.invoke('clips:delete', id),
+  clearAllClips: () => ipcRenderer.invoke('clips:clear-all'),
   togglePin: (id) => ipcRenderer.invoke('clips:toggle-pin', id),
   copyClip: (content) => ipcRenderer.invoke('clips:copy', content),
 

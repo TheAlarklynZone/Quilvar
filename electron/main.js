@@ -150,6 +150,7 @@ function setupAutoUpdater() {
 function registerIPC() {
   ipcMain.handle('clips:get', () => db.getClips());
   ipcMain.handle('clips:delete', (_, id) => db.deleteClip(id));
+  ipcMain.handle('clips:clear-all', () => db.clearNonPinnedClips());
   ipcMain.handle('clips:toggle-pin', (_, id) => db.togglePin(id));
   ipcMain.handle('clips:copy', (_, content) => {
     clipboard.writeText(content);

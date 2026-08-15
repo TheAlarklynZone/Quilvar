@@ -7,6 +7,7 @@ declare global {
     electronAPI: {
       getClips: () => Promise<Clip[]>;
       deleteClip: (id: string) => Promise<boolean>;
+      clearAllClips: () => Promise<number>;
       togglePin: (id: string) => Promise<Clip>;
       copyClip: (content: string) => Promise<boolean>;
       quit: () => Promise<void>;
@@ -97,6 +98,16 @@ export function useClipStore() {
     }
   }, []);
 
+  const clearAll = useCallback(async () => {
+    try {
+      await window.electronAPI.clearAllClips();
+      _clips = _clips.filter((c) => c.pinned);
+      notify();
+    } catch (e) {
+      console.error('Failed to clear clips:', e);
+    }
+  }, []);
+
   const togglePin = useCallback(async (id: string) => {
     try {
       const updated = await window.electronAPI.togglePin(id);
@@ -126,6 +137,7 @@ export function useClipStore() {
     pinnedClips: _clips.filter((c) => c.pinned),
     loadClips,
     deleteClip,
+    clearAll,
     togglePin,
     copyToClipboard,
     moveToVault,

@@ -89,6 +89,11 @@ function deleteClip(id) {
   return true;
 }
 
+function clearNonPinnedClips() {
+  const { changes } = db.prepare('DELETE FROM clips WHERE pinned = 0').run();
+  return changes;
+}
+
 function togglePin(id) {
   db.prepare('UPDATE clips SET pinned = CASE WHEN pinned = 1 THEN 0 ELSE 1 END WHERE id = ?').run(id);
   return getClipById(id);
@@ -246,6 +251,7 @@ module.exports = {
   addClip,
   getClips,
   deleteClip,
+  clearNonPinnedClips,
   togglePin,
   getQuivers,
   createQuiver,

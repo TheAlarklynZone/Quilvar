@@ -269,6 +269,88 @@ input, textarea, select { font: inherit; color: inherit; }
   font-variant-numeric: tabular-nums;
 }
 
+.clip-list-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.clip-clear-all-btn {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-faint);
+  transition: color var(--transition);
+}
+
+.clip-clear-all-btn:hover {
+  color: var(--color-error);
+}
+
+/* ═══════════════════════════════════════════
+   CLEAR ALL — confirmation dialog
+═══════════════════════════════════════════ */
+
+.clear-all-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: oklch(0 0 0 / 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.clear-all-dialog {
+  width: min(360px, 92vw);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-5);
+}
+
+.clear-all-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.clear-all-body {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.clear-all-body strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.clear-all-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.clear-all-confirm-btn {
+  background: var(--color-error);
+  color: var(--color-bg);
+  font-weight: 600;
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: opacity var(--transition);
+}
+
+.clear-all-confirm-btn:hover {
+  opacity: 0.85;
+}
+
 .clip-search {
   display: flex;
   align-items: center;
