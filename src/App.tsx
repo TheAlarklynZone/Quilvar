@@ -37,7 +37,7 @@ export default function App() {
       <div className="main-layout">
         <Sidebar currentView={view} onNavigate={setView} />
         <main className="main-content">
-          {view === "history" && <ClipList title="History" clips={clips} />}
+          {view === "history" && <ClipList title="History" clips={clips} showClearAll />}
           {view === "pinned" && <ClipList title="Pinned Clips" clips={pinnedClips} />}
           {view === "quivers" && <QuiversView pinnedClips={pinnedClips} />}
           {view === "vault" && <VaultView />}

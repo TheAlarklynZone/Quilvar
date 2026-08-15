@@ -6,22 +6,38 @@ import type { Clip } from "../types/clip";
 interface ClipListProps {
   title: string;
   clips: Clip[];
+  showClearAll?: boolean;
 }
 
-export function ClipList({ title, clips }: ClipListProps) {
+export function ClipList({ title, clips, showClearAll }: ClipListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { deleteClip, togglePin, copyToClipboard, moveToVault } = useClipStore();
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const { deleteClip, togglePin, copyToClipboard, moveToVault, clearAll } = useClipStore();
 
   const filtered = clips.filter((c) =>
     c.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const clearableCount = clips.filter((c) => !c.pinned).length;
+
+  async function handleConfirmClear() {
+    await clearAll();
+    setConfirmingClear(false);
+  }
 
   return (
     <div>
       {/* Header */}
       <div className="clip-list-header">
         <h1 className="clip-list-title">{title}</h1>
-        <span className="clip-list-count">{filtered.length} clips</span>
+        <div className="clip-list-header-right">
+          <span className="clip-list-count">{filtered.length} clips</span>
+          {showClearAll && clearableCount > 0 && (
+            <button className="clip-clear-all-btn" onClick={() => setConfirmingClear(true)}>
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search */}
@@ -61,6 +77,24 @@ export function ClipList({ title, clips }: ClipListProps) {
               onMoveToVault={() => moveToVault(clip.id)}
             />
           ))}
+        </div>
+      )}
+
+      {confirmingClear && (
+        <div className="clear-all-overlay" onClick={() => setConfirmingClear(false)}>
+          <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="clear-all-title">Clear all clips?</p>
+            <p className="clear-all-body">
+              This permanently deletes <strong>{clearableCount}</strong> clip{clearableCount === 1 ? "" : "s"}.
+              Pinned clips are kept.
+            </p>
+            <div className="clear-all-actions">
+              <button className="btn-ghost" onClick={() => setConfirmingClear(false)}>Cancel</button>
+              <button className="clear-all-confirm-btn" onClick={handleConfirmClear}>
+                Clear {clearableCount} clip{clearableCount === 1 ? "" : "s"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
