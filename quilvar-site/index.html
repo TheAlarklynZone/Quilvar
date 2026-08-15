@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quilvar — Store your clips. Paste with precision.</title>
+<meta name="description" content="A local-first clipboard history manager for Windows, macOS, and Linux. Quick Draw pulls any clip from anywhere with a hotkey. Nothing you copy ever leaves your device." />
+
+<meta property="og:title" content="Quilvar — Store your clips. Paste with precision." />
+<meta property="og:description" content="A local-first clipboard history manager for Windows, macOS, and Linux." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://thealarklynzone.github.io/Quilvar/" />
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="glow" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="#top" class="brand">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--color-primary)" opacity="0.15"/>
+        <path d="M8 24 L16 6 L18 6 L22 14 L20 14 L16 7 L10 24 Z" fill="var(--color-primary)"/>
+        <path d="M13 18 L20 18 L21 21 L19 21 L18.5 19.5 L14.5 19.5 Z" fill="var(--color-primary)" opacity="0.7"/>
+        <circle cx="22" cy="22" r="3" stroke="var(--color-primary)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <span>Quilvar</span>
+    </a>
+    <nav class="topbar-nav">
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/TheAlarklynZone/Quilvar">GitHub</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">
+        <svg id="themeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"></svg>
+      </button>
+      <a class="btn btn-primary btn-small" href="https://github.com/TheAlarklynZone/Quilvar/releases/latest">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="eyebrow">Local-first clipboard manager</span>
+      <h1>Store your clips.<br>Paste with precision.</h1>
+      <p class="hero-sub">
+        Quilvar runs quietly in your tray and remembers everything you copy. When you need it
+        back, one hotkey pulls up <strong>Quick Draw</strong> — search, pick, paste — from
+        anywhere on your desktop, in any app.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/TheAlarklynZone/Quilvar/releases/latest" id="primaryDownload">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+          <span id="primaryDownloadLabel">Download for your OS</span>
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/TheAlarklynZone/Quilvar">
+          View on GitHub
+        </a>
+      </div>
+      <p class="hero-note">Free · Open source · Windows, macOS &amp; Linux</p>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="desktop-backdrop">
+        <div class="backdrop-scrim"></div>
+        <div class="qd-panel">
+          <div class="qd-input-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span class="qd-query">deploy<span class="cursor"></span></span>
+            <span class="qd-hotkey-badge">ESC to close</span>
+          </div>
+          <div class="qd-results">
+            <div class="qd-item qd-item--focused">
+              <span class="qd-item-text">git commit -m "<mark>deploy</mark>: cut v0.1.8 release"</span>
+              <span class="qd-item-time">2m</span>
+            </div>
+            <div class="qd-item">
+              <span class="qd-item-text">npm run electron:build:win -- --publish never</span>
+              <span class="qd-item-time">18m</span>
+            </div>
+            <div class="qd-item">
+              <span class="qd-item-text">https://github.com/TheAlarklynZone/Quilvar/releases</span>
+              <span class="qd-item-time">1h</span>
+            </div>
+          </div>
+          <div class="qd-hint">
+            <span><kbd>↑↓</kbd> navigate</span>
+            <span><kbd>↵</kbd> paste</span>
+            <span><kbd>esc</kbd> close</span>
+          </div>
+        </div>
+      </div>
+      <p class="hero-visual-caption"><kbd>Shift</kbd><kbd>Alt</kbd><kbd>V</kbd> — summon Quick Draw from anywhere</p>
+    </div>
+  </section>
+
+  <!-- ============ WHAT IS IT ============ -->
+  <section class="about">
+    <div class="about-copy">
+      <h2>Your clipboard, but it remembers.</h2>
+      <p>
+        Copy three things in a row and normally only the last one survives. Quilvar keeps up to
+        500 of them, deduplicated and timestamped, searchable the moment you need something you
+        copied an hour — or three clips — ago.
+      </p>
+      <p>
+        It's <strong>local-first</strong>: everything lives in a SQLite database on your own
+        machine. Nothing you copy is ever sent anywhere.
+      </p>
+    </div>
+    <img
+      class="about-shot"
+      src="https://github.com/user-attachments/assets/8442fbe7-9328-4395-9b82-985bb187f275"
+      alt="Quilvar's History view, showing a list of copied clips with pin, vault, and delete actions"
+      loading="lazy"
+      width="936" height="767"
+    />
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="features" id="features">
+    <div class="section-head">
+      <span class="eyebrow">Everything in the tray</span>
+      <h2>Eight ways to never lose a clip</h2>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-card feature-card--accent">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <h3>Quick Draw</h3>
+        <p>A global hotkey overlay that opens over any app. Type to filter, arrow keys to move, Enter to paste.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></svg>
+        <h3>Clipboard History</h3>
+        <p>Captures everything you copy automatically, deduplicated, up to 500 clips deep.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 17-7 4 1.5-7.5L2 9l7.5-1L12 2l2.5 6L22 9l-4.5 4.5L19 21z"/></svg>
+        <h3>Pins</h3>
+        <p>Pin the clips you reuse constantly so they never scroll away, no matter how much you copy after.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <h3>Quivers</h3>
+        <p>Group your pinned clips into named collections — one quiver per project, snippet set, or workflow.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <h3>Quilvault</h3>
+        <p>A PIN-gated, OS-keychain-encrypted space for the clips you don't want sitting in plain history.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 4 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z"/></svg>
+        <h3>Quilvert</h3>
+        <p>Trim, collapse whitespace, prettify or minify JSON — clean up a clip before you paste it anywhere.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+        <h3>System Tray</h3>
+        <p>Lives quietly in the background. Closing the window sends it to tray — quitting is always intentional.</p>
+      </article>
+      <article class="feature-card">
+        <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+        <h3>Auto-updater</h3>
+        <p>One click in Settings checks GitHub Releases and installs the newest build, right down to your channel.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ SCREENSHOT ============ -->
+  <section class="showcase">
+    <img
+      src="https://github.com/user-attachments/assets/778acac4-27c9-4277-8c1a-728530528228"
+      alt="Quilvar's Settings view, showing the global shortcut, Quilvault, and update controls"
+      loading="lazy"
+      width="924" height="822"
+    />
+  </section>
+
+  <!-- ============ PLATFORMS ============ -->
+  <section class="platforms">
+    <div class="section-head">
+      <span class="eyebrow">Runs everywhere you work</span>
+      <h2>Windows, macOS, and Linux</h2>
+    </div>
+    <div class="platform-grid">
+      <div class="platform-card">
+        <span class="platform-name">Windows</span>
+        <span class="platform-hotkey"><kbd>Shift</kbd><kbd>Alt</kbd><kbd>V</kbd></span>
+      </div>
+      <div class="platform-card">
+        <span class="platform-name">macOS</span>
+        <span class="platform-hotkey"><kbd>Shift</kbd><kbd>Alt</kbd><kbd>V</kbd><span class="platform-or">or</span><kbd>⌘</kbd><kbd>Shift</kbd><kbd>V</kbd></span>
+      </div>
+      <div class="platform-card">
+        <span class="platform-name">Linux</span>
+        <span class="platform-hotkey"><kbd>Shift</kbd><kbd>Alt</kbd><kbd>V</kbd></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DOWNLOAD ============ -->
+  <section class="download" id="download">
+    <div class="download-inner">
+      <h2>Get Quilvar</h2>
+      <p>Every release is built and published straight from this repository via GitHub Actions.</p>
+      <div class="download-grid">
+        <a class="download-card" href="https://github.com/TheAlarklynZone/Quilvar/releases/latest">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+          <span>Windows</span>
+          <span class="download-card-sub">.exe installer</span>
+        </a>
+        <a class="download-card" href="https://github.com/TheAlarklynZone/Quilvar/releases/latest">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3c1.5 2 1.5 4-1 6 3 0 5 2 5 5 0 4-3 7-6 7s-6-3-6-7c0-1.5.5-3 1.5-4.5"/></svg>
+          <span>macOS</span>
+          <span class="download-card-sub">.dmg, Intel &amp; Apple Silicon</span>
+        </a>
+        <a class="download-card" href="https://github.com/TheAlarklynZone/Quilvar/releases/latest">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 15s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+          <span>Linux</span>
+          <span class="download-card-sub">.AppImage or .deb</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--color-primary)" opacity="0.15"/>
+        <path d="M8 24 L16 6 L18 6 L22 14 L20 14 L16 7 L10 24 Z" fill="var(--color-primary)"/>
+        <path d="M13 18 L20 18 L21 21 L19 21 L18.5 19.5 L14.5 19.5 Z" fill="var(--color-primary)" opacity="0.7"/>
+        <circle cx="22" cy="22" r="3" stroke="var(--color-primary)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <span>Quilvar</span>
+    </div>
+    <nav class="footer-links">
+      <a href="https://github.com/TheAlarklynZone/Quilvar">Repository</a>
+      <a href="https://github.com/TheAlarklynZone/Quilvar/releases">Releases</a>
+      <a href="https://github.com/TheAlarklynZone/Quilvar/issues">Issues</a>
+    </nav>
+    <p class="footer-credit">Designed and created by Alarkius Elvya Jay · MIT License</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    var icon = document.getElementById('themeIcon');
+    var sun = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+    var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>';
+
+    function apply(theme) {
+      root.setAttribute('data-theme', theme);
+      icon.innerHTML = theme === 'light' ? sun : moon;
+      try { localStorage.setItem('quilvar-site-theme', theme); } catch (e) {}
+    }
+
+    var saved;
+    try { saved = localStorage.getItem('quilvar-site-theme'); } catch (e) {}
+    var systemLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    apply(saved || (systemLight ? 'light' : 'dark'));
+
+    btn.addEventListener('click', function () {
+      apply(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    });
+
+    // Detect OS for the primary download button's label only — it still
+    // links to the same release page either way.
+    var ua = navigator.userAgent;
+    var label = document.getElementById('primaryDownloadLabel');
+    if (/Mac/.test(ua)) label.textContent = 'Download for macOS';
+    else if (/Linux/.test(ua) && !/Android/.test(ua)) label.textContent = 'Download for Linux';
+    else if (/Win/.test(ua)) label.textContent = 'Download for Windows';
+  })();
+</script>
+
+</body>
+</html>
