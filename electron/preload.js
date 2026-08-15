@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   vaultSetPin: (pin) => ipcRenderer.invoke('vault:set-pin', pin),
   vaultUnlock: (pin) => ipcRenderer.invoke('vault:unlock', pin),
   vaultLock: () => ipcRenderer.invoke('vault:lock'),
+  resetVaultPin: () => ipcRenderer.invoke('vault:reset-pin'),
   getVaultClips: () => ipcRenderer.invoke('vault:get-clips'),
   addToVault: (clipId) => ipcRenderer.invoke('vault:add', clipId),
   removeFromVault: (id) => ipcRenderer.invoke('vault:remove', id),

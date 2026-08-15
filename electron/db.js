@@ -197,6 +197,16 @@ function vaultLock() {
   vaultUnlocked = false;
 }
 
+// Clears the stored PIN so a new one can be set — for a forgotten PIN.
+// Vault clip content is encrypted via safeStorage independent of the PIN
+// (the PIN is only a gate check, not a key), so this never touches
+// vault_clips and no content is lost.
+function vaultResetPin() {
+  db.prepare("DELETE FROM vault_settings WHERE key = 'pin'").run();
+  vaultUnlocked = false;
+  return true;
+}
+
 function requireVaultUnlocked() {
   if (!vaultUnlocked) throw new Error('Quilvault is locked.');
 }
@@ -263,6 +273,7 @@ module.exports = {
   vaultSetPin,
   vaultUnlock,
   vaultLock,
+  vaultResetPin,
   getVaultClips,
   addToVault,
   removeFromVault,

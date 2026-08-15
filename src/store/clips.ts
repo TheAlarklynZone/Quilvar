@@ -39,6 +39,7 @@ declare global {
       vaultSetPin: (pin: string) => Promise<boolean>;
       vaultUnlock: (pin: string) => Promise<boolean>;
       vaultLock: () => Promise<void>;
+      resetVaultPin: () => Promise<boolean>;
       getVaultClips: () => Promise<Clip[]>;
       addToVault: (clipId: string) => Promise<boolean>;
       removeFromVault: (id: string) => Promise<boolean>;

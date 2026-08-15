@@ -186,6 +186,7 @@ function registerIPC() {
   ipcMain.handle('vault:set-pin', (_, pin) => db.vaultSetPin(pin));
   ipcMain.handle('vault:unlock', (_, pin) => db.vaultUnlock(pin));
   ipcMain.handle('vault:lock', () => db.vaultLock());
+  ipcMain.handle('vault:reset-pin', () => db.vaultResetPin());
   ipcMain.handle('vault:get-clips', () => db.getVaultClips());
   ipcMain.handle('vault:add', (_, clipId) => db.addToVault(clipId));
   ipcMain.handle('vault:remove', (_, id) => db.removeFromVault(id));

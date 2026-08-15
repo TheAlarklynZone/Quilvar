@@ -7,12 +7,25 @@ const isMac = navigator.platform.toLowerCase().includes("mac");
 export function SettingsView() {
   const [version, setVersion] = useState("");
   const [storagePath, setStoragePath] = useState("");
+  const [vaultHasPin, setVaultHasPin] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const { clips } = useClipStore();
 
   useEffect(() => {
     window.electronAPI.getVersion().then(setVersion);
     window.electronAPI.getStoragePath().then(setStoragePath);
+    refreshVaultStatus();
   }, []);
+
+  function refreshVaultStatus() {
+    window.electronAPI.vaultStatus().then((s) => setVaultHasPin(s.hasPin));
+  }
+
+  async function handleResetPin() {
+    await window.electronAPI.resetVaultPin();
+    setConfirmingReset(false);
+    refreshVaultStatus();
+  }
 
   return (
     <div className="settings-view">
@@ -29,6 +42,25 @@ export function SettingsView() {
           <span className="settings-hotkey"><kbd>Shift</kbd><kbd>Alt</kbd><kbd>V</kbd></span>
           {isMac && <span className="settings-hotkey"><kbd>⌘</kbd><kbd>Shift</kbd><kbd>V</kbd></span>}
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-section-title">Quilvault</h2>
+        {vaultHasPin ? (
+          <>
+            <p className="settings-section-desc">
+              A PIN is set for your vault. Forgot it? Resetting clears the PIN — your vault
+              clips stay intact, and you'll set a new PIN next time you open Quilvault.
+            </p>
+            <button className="settings-danger-link" onClick={() => setConfirmingReset(true)}>
+              Reset Quilvault PIN
+            </button>
+          </>
+        ) : (
+          <p className="settings-section-desc">
+            No PIN set yet — set one from the Quilvault tab to start using it.
+          </p>
+        )}
       </section>
 
       <section className="settings-section">
@@ -59,6 +91,22 @@ export function SettingsView() {
           <span className="settings-row-value">{version || "—"}</span>
         </div>
       </section>
+
+      {confirmingReset && (
+        <div className="confirm-overlay" onClick={() => setConfirmingReset(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">Reset Quilvault PIN?</p>
+            <p className="confirm-body">
+              Your vault clips stay intact. But until you set a new PIN, anyone with access to
+              this app can set one themselves and see what's in the vault.
+            </p>
+            <div className="confirm-actions">
+              <button className="btn-ghost" onClick={() => setConfirmingReset(false)}>Cancel</button>
+              <button className="confirm-danger-btn" onClick={handleResetPin}>Reset PIN</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

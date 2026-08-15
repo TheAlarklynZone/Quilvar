@@ -81,16 +81,16 @@ export function ClipList({ title, clips, showClearAll }: ClipListProps) {
       )}
 
       {confirmingClear && (
-        <div className="clear-all-overlay" onClick={() => setConfirmingClear(false)}>
-          <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="clear-all-title">Clear all clips?</p>
-            <p className="clear-all-body">
+        <div className="confirm-overlay" onClick={() => setConfirmingClear(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">Clear all clips?</p>
+            <p className="confirm-body">
               This permanently deletes <strong>{clearableCount}</strong> clip{clearableCount === 1 ? "" : "s"}.
               Pinned clips are kept.
             </p>
-            <div className="clear-all-actions">
+            <div className="confirm-actions">
               <button className="btn-ghost" onClick={() => setConfirmingClear(false)}>Cancel</button>
-              <button className="clear-all-confirm-btn" onClick={handleConfirmClear}>
+              <button className="confirm-danger-btn" onClick={handleConfirmClear}>
                 Clear {clearableCount} clip{clearableCount === 1 ? "" : "s"}
               </button>
             </div>
