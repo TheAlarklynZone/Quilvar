@@ -1,7 +1,11 @@
+<img width="936" height="767" alt="srcnsht-png-22-23" src="https://github.com/user-attachments/assets/8442fbe7-9328-4395-9b82-985bb187f275" />
+
 # Quilvar — Store your clips. Paste with precision.
 
 > A lightweight clipboard manager for Windows, macOS, and Linux.  
 > Your copied text does not disappear just because you copied something else.
+
+<img width="924" height="822" alt="srcnsht-png-22-23_1" src="https://github.com/user-attachments/assets/778acac4-27c9-4277-8c1a-728530528228" />
 
 ---
 
