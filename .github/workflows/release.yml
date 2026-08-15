@@ -24,11 +24,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Sync version from tag
+      - name: Sync version and channel from tag
         shell: bash
         run: |
           TAG=${GITHUB_REF_NAME#v}
-          npm version $TAG --no-git-tag-version
+          npm version "$TAG" --no-git-tag-version
+          # v0.1.6 -> channel "latest"; v0.1.6-A / v0.1.6-B -> channel "A" / "B".
+          # electron-updater picks releases in the same channel as the app's
+          # own currently-installed version, so this is what keeps an alpha
+          # build only ever offering alpha updates, a beta build only beta,
+          # and a stable build only stable.
+          if [[ "$TAG" == *-* ]]; then CHANNEL="${TAG#*-}"; else CHANNEL="latest"; fi
+          npm pkg set build.publish.channel="$CHANNEL"
+          echo "Building $TAG on channel $CHANNEL"
 
       - name: Install dependencies
         run: npm install
@@ -45,7 +53,7 @@ jobs:
           name: windows-build
           path: |
             release/*.exe
-            release/latest.yml
+            release/*.yml
 
   build-mac:
     name: Build macOS
@@ -61,10 +69,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Sync version from tag
+      - name: Sync version and channel from tag
         run: |
           TAG=${GITHUB_REF_NAME#v}
-          npm version $TAG --no-git-tag-version
+          npm version "$TAG" --no-git-tag-version
+          if [[ "$TAG" == *-* ]]; then CHANNEL="${TAG#*-}"; else CHANNEL="latest"; fi
+          npm pkg set build.publish.channel="$CHANNEL"
+          echo "Building $TAG on channel $CHANNEL"
 
       - name: Install dependencies
         run: npm install
@@ -81,7 +92,7 @@ jobs:
           name: mac-build
           path: |
             release/*.dmg
-            release/latest-mac.yml
+            release/*.yml
 
   build-linux:
     name: Build Linux
@@ -97,10 +108,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Sync version from tag
+      - name: Sync version and channel from tag
         run: |
           TAG=${GITHUB_REF_NAME#v}
-          npm version $TAG --no-git-tag-version
+          npm version "$TAG" --no-git-tag-version
+          if [[ "$TAG" == *-* ]]; then CHANNEL="${TAG#*-}"; else CHANNEL="latest"; fi
+          npm pkg set build.publish.channel="$CHANNEL"
+          echo "Building $TAG on channel $CHANNEL"
 
       - name: Install Linux build dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libsqlite3-dev
@@ -121,7 +135,7 @@ jobs:
           path: |
             release/*.AppImage
             release/*.deb
-            release/latest-linux.yml
+            release/*.yml
 
   release:
     name: Create GitHub Release
@@ -137,10 +151,24 @@ jobs:
         with:
           path: artifacts
 
+      - name: Determine prerelease flag
+        id: prerelease
+        run: |
+          # v0.1.6 -> stable release; v0.1.6-A / v0.1.6-B (or any -suffix) ->
+          # marked as a GitHub prerelease so stable installs (which check
+          # GitHub's "latest release" endpoint, which excludes prereleases)
+          # never see it as an update.
+          if [[ "${{ github.ref_name }}" == *-* ]]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
           generate_release_notes: true
+          prerelease: ${{ steps.prerelease.outputs.value }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
