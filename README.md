@@ -5,10 +5,6 @@
 > A lightweight clipboard manager for Windows, macOS, and Linux.  
 > Your copied text does not disappear just because you copied something else.
 
-
-<center> All Creative Control Direction (Functions & Features) is made by Me. Claude Code simply helps with the logic and structure. </center>
-
-
 <img width="924" height="822" alt="srcnsht-png-22-23_1" src="https://github.com/user-attachments/assets/778acac4-27c9-4277-8c1a-728530528228" />
 
 ---
@@ -18,6 +14,9 @@
 Quilvar is a **local-first clipboard history manager** that runs quietly in your system tray. It captures everything you copy, lets you search and re-paste anything from your history, and gives you a fast global hotkey overlay called **Quick Draw** to pull clips from anywhere on your desktop.
 
 Your OS clipboard works exactly as normal — Quilvar just makes sure nothing gets lost.
+
+<center> All Creative Control Direction (Functions & Features) is made by Me. 
+    Claude Code simply helps with the logic and structure. </center>
 
 ---
 
