@@ -15,8 +15,8 @@ Quilvar is a **local-first clipboard history manager** that runs quietly in your
 
 Your OS clipboard works exactly as normal — Quilvar just makes sure nothing gets lost.
 
-<center> All Creative Control Direction (Functions & Features) is made by Me. 
-    Claude Code simply helps with the logic and structure. </center>
+**All Creative Control Direction (Functions & Features) is made by Me. 
+Claude Code simply helps with the logic and structure.**
 
 ---
 
