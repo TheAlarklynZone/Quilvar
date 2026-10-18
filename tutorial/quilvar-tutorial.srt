@@ -1,0 +1,44 @@
+1
+00:00:00,000 --> 00:00:04,500
+A quick tour of Quilvar — your clipboard history, with precision.
+
+2
+00:00:04,500 --> 00:00:10,000
+Everything you copy is saved automatically — text and images.
+
+3
+00:00:10,000 --> 00:00:15,500
+Search your history, then click any clip to copy it again.
+
+4
+00:00:15,500 --> 00:00:21,000
+Pin the clips you reuse. Pinned clips survive Clear All.
+
+5
+00:00:21,000 --> 00:00:27,000
+Group pinned clips into Quivers — folders for the snippets you reach for most.
+
+6
+00:00:27,000 --> 00:00:33,000
+Quilvert cleans up text: trim, collapse whitespace, prettify or minify JSON.
+
+7
+00:00:33,000 --> 00:00:39,000
+Quilvault keeps sensitive clips behind a PIN, encrypted on your device.
+
+8
+00:00:39,000 --> 00:00:45,000
+Press Shift + Alt + V anywhere to open Quick Draw.
+
+9
+00:00:45,000 --> 00:00:51,000
+Pick a clip with ↑ ↓ and hit Enter — it pastes straight into the app you were in.
+
+10
+00:00:51,000 --> 00:00:57,000
+In Settings: change the shortcut, launch at startup, and check for updates.
+
+11
+00:00:57,000 --> 00:01:02,000
+Everything stays on your device. Nothing is ever sent to a server.
+
