@@ -5,6 +5,11 @@ export interface Clip {
   pinned: boolean;
   charCount: number;
   wordCount: number;
+  type: "text" | "image";
+  // Image clips only: the row carries a small thumbnail; the full PNG lives on disk.
+  width?: number;
+  height?: number;
+  thumbnail?: string;
 }
 
 export interface Quiver {

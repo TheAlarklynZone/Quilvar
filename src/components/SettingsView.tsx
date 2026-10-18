@@ -1,21 +1,99 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UpdaterPanel } from "./UpdaterPanel";
-import { useClipStore } from "../store/clips";
+import { useClipStore, type AppSettings } from "../store/clips";
 
 const isMac = navigator.platform.toLowerCase().includes("mac");
+
+const KEY_NAMES: Record<string, string> = {
+  Space: "Space", Enter: "Return", Tab: "Tab", Backspace: "Backspace", Delete: "Delete",
+  Insert: "Insert", Home: "Home", End: "End", PageUp: "PageUp", PageDown: "PageDown",
+  ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
+  Minus: "-", Equal: "=", Comma: ",", Period: ".", Slash: "/", Semicolon: ";",
+  Quote: "'", BracketLeft: "[", BracketRight: "]", Backslash: "\\", Backquote: "`",
+};
+
+// Turns a keydown into an Electron accelerator ("Shift+Alt+V"), or null while
+// only modifiers are held / the key has no accelerator name.
+function toAccelerator(e: React.KeyboardEvent): string | null {
+  const mods: string[] = [];
+  if (e.ctrlKey) mods.push("Control");
+  if (e.altKey) mods.push("Alt");
+  if (e.shiftKey) mods.push("Shift");
+  if (e.metaKey) mods.push(isMac ? "Command" : "Super");
+
+  const m = /^Key([A-Z])$/.exec(e.code) ?? /^Digit(\d)$/.exec(e.code) ?? /^(F\d{1,2})$/.exec(e.code);
+  const key = m ? m[1] : KEY_NAMES[e.code];
+  if (!key || mods.length === 0) return null;
+  return [...mods, key].join("+");
+}
+
+const KEY_LABELS: Record<string, string> = isMac
+  ? { Command: "⌘", Control: "⌃", Alt: "⌥", Shift: "⇧" }
+  : { Control: "Ctrl", Super: "Win" };
+
+function HotkeyKeys({ accelerator }: { accelerator: string }) {
+  return (
+    <span className="settings-hotkey">
+      {accelerator.split("+").map((k) => <kbd key={k}>{KEY_LABELS[k] ?? k}</kbd>)}
+    </span>
+  );
+}
 
 export function SettingsView() {
   const [version, setVersion] = useState("");
   const [storagePath, setStoragePath] = useState("");
   const [vaultHasPin, setVaultHasPin] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [hotkeyError, setHotkeyError] = useState<string | null>(null);
+  const recorderRef = useRef<HTMLButtonElement>(null);
   const { clips } = useClipStore();
 
   useEffect(() => {
     window.electronAPI.getVersion().then(setVersion);
     window.electronAPI.getStoragePath().then(setStoragePath);
+    window.electronAPI.getSettings().then(setSettings);
     refreshVaultStatus();
   }, []);
+
+  // While recording, the live global shortcut is suspended so pressing the
+  // current combo is captured instead of triggering Quick Draw.
+  function startRecording() {
+    setHotkeyError(null);
+    setRecording(true);
+    recorderRef.current?.focus();
+    window.electronAPI.suspendHotkey();
+  }
+
+  function stopRecording() {
+    setRecording(false);
+    window.electronAPI.resumeHotkey();
+  }
+
+  async function handleRecordKey(e: React.KeyboardEvent) {
+    e.preventDefault();
+    if (e.key === "Escape") { stopRecording(); return; }
+    const accelerator = toAccelerator(e);
+    if (!accelerator) return;
+    setRecording(false);
+    // set-hotkey re-registers on its own, so no separate resume is needed.
+    const result = await window.electronAPI.setHotkey(accelerator);
+    if (!result.ok) setHotkeyError(result.error ?? "Couldn't use that shortcut.");
+    setSettings((s) => (s ? { ...s, hotkey: result.hotkey } : s));
+  }
+
+  async function handleResetHotkey() {
+    setHotkeyError(null);
+    const result = await window.electronAPI.resetHotkey();
+    setSettings((s) => (s ? { ...s, hotkey: result.hotkey } : s));
+  }
+
+  async function handleToggleLaunch() {
+    if (!settings) return;
+    const enabled = await window.electronAPI.setLaunchAtStartup(!settings.launchAtStartup);
+    setSettings({ ...settings, launchAtStartup: enabled });
+  }
 
   function refreshVaultStatus() {
     window.electronAPI.vaultStatus().then((s) => setVaultHasPin(s.hasPin));
@@ -39,9 +117,44 @@ export function SettingsView() {
           Opens Quick Draw from anywhere on your desktop, even when Quilvar isn't focused.
         </p>
         <div className="settings-hotkey-row">
-          <span className="settings-hotkey"><kbd>Shift</kbd><kbd>Alt</kbd><kbd>V</kbd></span>
-          {isMac && <span className="settings-hotkey"><kbd>⌘</kbd><kbd>Shift</kbd><kbd>V</kbd></span>}
+          {settings && <HotkeyKeys accelerator={settings.hotkey} />}
+          {isMac && settings?.hotkey === settings?.defaultHotkey && (
+            <HotkeyKeys accelerator="Command+Shift+V" />
+          )}
+          <button
+            ref={recorderRef}
+            className={`hotkey-recorder ${recording ? "hotkey-recorder--recording" : ""}`}
+            onClick={recording ? stopRecording : startRecording}
+            onKeyDown={recording ? handleRecordKey : undefined}
+            onBlur={() => recording && stopRecording()}
+          >
+            {recording ? "Press a shortcut… (Esc to cancel)" : "Change"}
+          </button>
+          {settings && settings.hotkey !== settings.defaultHotkey && !recording && (
+            <button className="settings-danger-link" onClick={handleResetHotkey}>Reset to default</button>
+          )}
         </div>
+        {hotkeyError && <p className="hotkey-error">{hotkeyError}</p>}
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-section-title">Startup</h2>
+        <div className="settings-row">
+          <span>Launch Quilvar when I sign in</span>
+          <button
+            className="toggle"
+            role="switch"
+            aria-checked={!!settings?.launchAtStartup}
+            aria-label="Launch at startup"
+            disabled={!settings?.launchSupported}
+            onClick={handleToggleLaunch}
+          />
+        </div>
+        <p className="settings-section-desc">
+          {settings && !settings.launchSupported
+            ? "Not available here — launch at startup works in the installed app on Windows and macOS."
+            : "Starts quietly in the tray so your clipboard history is always being saved."}
+        </p>
       </section>
 
       <section className="settings-section">

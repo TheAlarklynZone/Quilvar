@@ -1,10 +1,12 @@
 const path = require('path');
+const fs = require('fs');
 const { app, safeStorage } = require('electron');
 const Database = require('better-sqlite3');
 const { randomUUID } = require('crypto');
 
 let db;
 let vaultUnlocked = false;
+let imageDir;
 
 function init() {
   const dbPath = path.join(app.getPath('userData'), 'quilvar.db');
@@ -46,11 +48,44 @@ function init() {
       key TEXT PRIMARY KEY,
       value_encrypted BLOB NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
+
+  // Image clips: added after the first release, so migrate existing databases in place.
+  const cols = db.prepare('PRAGMA table_info(clips)').all().map((c) => c.name);
+  if (!cols.includes('type')) db.exec("ALTER TABLE clips ADD COLUMN type TEXT NOT NULL DEFAULT 'text'");
+  if (!cols.includes('hash')) db.exec('ALTER TABLE clips ADD COLUMN hash TEXT');
+  if (!cols.includes('width')) db.exec('ALTER TABLE clips ADD COLUMN width INTEGER NOT NULL DEFAULT 0');
+  if (!cols.includes('height')) db.exec('ALTER TABLE clips ADD COLUMN height INTEGER NOT NULL DEFAULT 0');
+  if (!cols.includes('thumbnail')) db.exec('ALTER TABLE clips ADD COLUMN thumbnail TEXT');
+
+  imageDir = path.join(app.getPath('userData'), 'clip-images');
+  fs.mkdirSync(imageDir, { recursive: true });
+}
+
+// ── App settings ───────────────────────────────────────────────────────────
+
+function getSetting(key, fallback) {
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+  if (!row) return fallback;
+  try { return JSON.parse(row.value); } catch { return fallback; }
+}
+
+function setSetting(key, value) {
+  db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, JSON.stringify(value));
+  return value;
+}
+
+function deleteSetting(key) {
+  db.prepare('DELETE FROM app_settings WHERE key = ?').run(key);
 }
 
 function addClip(content) {
-  const existing = db.prepare('SELECT id FROM clips WHERE content = ?').get(content);
+  const existing = db.prepare("SELECT id FROM clips WHERE type = 'text' AND content = ?").get(content);
   if (existing) {
     // Move to top by updating timestamp
     db.prepare('UPDATE clips SET timestamp = ? WHERE id = ?').run(Date.now(), existing.id);
@@ -70,8 +105,51 @@ function addClip(content) {
   db.prepare(
     'DELETE FROM clips WHERE pinned = 0 AND id NOT IN (SELECT id FROM clips WHERE pinned = 0 ORDER BY timestamp DESC LIMIT 500)'
   ).run();
+  pruneOrphanImages();
 
   return getClipById(id);
+}
+
+// Image clips keep their PNG on disk (the row only holds a small thumbnail),
+// so any delete path has to sweep files whose row is gone.
+function imagePath(id) {
+  return path.join(imageDir, `${id}.png`);
+}
+
+function pruneOrphanImages() {
+  const live = new Set(db.prepare("SELECT id FROM clips WHERE type = 'image'").all().map((r) => r.id));
+  for (const file of fs.readdirSync(imageDir)) {
+    if (file.endsWith('.png') && !live.has(file.slice(0, -4))) {
+      try { fs.unlinkSync(path.join(imageDir, file)); } catch { /* best effort */ }
+    }
+  }
+}
+
+function addImageClip({ png, hash, width, height, thumbnail }) {
+  const existing = db.prepare("SELECT id FROM clips WHERE type = 'image' AND hash = ?").get(hash);
+  if (existing) {
+    db.prepare('UPDATE clips SET timestamp = ? WHERE id = ?').run(Date.now(), existing.id);
+    return getClipById(existing.id);
+  }
+
+  const id = randomUUID();
+  fs.writeFileSync(imagePath(id), png);
+  db.prepare(
+    `INSERT INTO clips (id, content, timestamp, pinned, char_count, word_count, type, hash, width, height, thumbnail)
+     VALUES (?, ?, ?, 0, 0, 0, 'image', ?, ?, ?, ?)`
+  ).run(id, `Image ${width}×${height}`, Date.now(), hash, width, height, thumbnail);
+
+  db.prepare(
+    'DELETE FROM clips WHERE pinned = 0 AND id NOT IN (SELECT id FROM clips WHERE pinned = 0 ORDER BY timestamp DESC LIMIT 500)'
+  ).run();
+  pruneOrphanImages();
+
+  return getClipById(id);
+}
+
+function getClipImagePath(id) {
+  const p = imagePath(id);
+  return fs.existsSync(p) ? p : null;
 }
 
 function getClipById(id) {
@@ -86,11 +164,13 @@ function getClips() {
 
 function deleteClip(id) {
   db.prepare('DELETE FROM clips WHERE id = ?').run(id);
+  pruneOrphanImages();
   return true;
 }
 
 function clearNonPinnedClips() {
   const { changes } = db.prepare('DELETE FROM clips WHERE pinned = 0').run();
+  pruneOrphanImages();
   return changes;
 }
 
@@ -107,6 +187,10 @@ function rowToClip(row) {
     pinned: row.pinned === 1,
     charCount: row.char_count,
     wordCount: row.word_count,
+    type: row.type === 'image' ? 'image' : 'text',
+    width: row.width || undefined,
+    height: row.height || undefined,
+    thumbnail: row.thumbnail || undefined,
   };
 }
 
@@ -222,6 +306,7 @@ function getVaultClips() {
     pinned: false,
     charCount: row.char_count,
     wordCount: row.word_count,
+    type: 'text',
   }));
 }
 
@@ -230,6 +315,7 @@ function addToVault(clipId) {
   requireEncryption();
   const clip = getClipById(clipId);
   if (!clip) throw new Error('Clip not found.');
+  if (clip.type === 'image') throw new Error('Image clips can\'t be moved to Quilvault.');
 
   const encrypted = safeStorage.encryptString(clip.content);
   db.prepare(
@@ -258,7 +344,13 @@ function restoreFromVault(id) {
 
 module.exports = {
   init,
+  getSetting,
+  setSetting,
+  deleteSetting,
   addClip,
+  addImageClip,
+  getClipById,
+  getClipImagePath,
   getClips,
   deleteClip,
   clearNonPinnedClips,

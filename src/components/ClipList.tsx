@@ -12,7 +12,7 @@ interface ClipListProps {
 export function ClipList({ title, clips, showClearAll }: ClipListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmingClear, setConfirmingClear] = useState(false);
-  const { deleteClip, togglePin, copyToClipboard, moveToVault, clearAll } = useClipStore();
+  const { deleteClip, togglePin, copyClip, moveToVault, clearAll } = useClipStore();
 
   const filtered = clips.filter((c) =>
     c.content.toLowerCase().includes(searchQuery.toLowerCase())
@@ -71,7 +71,7 @@ export function ClipList({ title, clips, showClearAll }: ClipListProps) {
             <ClipCard
               key={clip.id}
               clip={clip}
-              onCopy={() => copyToClipboard(clip.content)}
+              onCopy={() => copyClip(clip)}
               onDelete={() => deleteClip(clip.id)}
               onTogglePin={() => togglePin(clip.id)}
               onMoveToVault={() => moveToVault(clip.id)}

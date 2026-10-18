@@ -33,15 +33,20 @@ export function ClipCard({ clip, onCopy, onDelete, onTogglePin, onMoveToVault }:
   }
 
   const timeAgo = formatTimeAgo(clip.timestamp);
+  const isImage = clip.type === "image";
 
   return (
     <div className={`clip-card ${clip.pinned ? "clip-card--pinned" : ""}`}>
       {/* Content preview */}
       <button className="clip-card-content" onClick={handleCopy}>
-        <span className="clip-text">
-          {clip.content.slice(0, 200)}
-          {clip.content.length > 200 ? "…" : ""}
-        </span>
+        {isImage && clip.thumbnail ? (
+          <img className="clip-image" src={clip.thumbnail} alt={clip.content} />
+        ) : (
+          <span className="clip-text">
+            {clip.content.slice(0, 200)}
+            {clip.content.length > 200 ? "…" : ""}
+          </span>
+        )}
       </button>
 
       {/* Footer */}
@@ -49,7 +54,9 @@ export function ClipCard({ clip, onCopy, onDelete, onTogglePin, onMoveToVault }:
         <div className="clip-meta">
           {clip.pinned && <span className="clip-pin-badge">📌 Pinned</span>}
           <span className="clip-time">{timeAgo}</span>
-          <span className="clip-stats">{clip.charCount} chars · {clip.wordCount} words</span>
+          <span className="clip-stats">
+            {isImage ? `${clip.width} × ${clip.height} px` : `${clip.charCount} chars · ${clip.wordCount} words`}
+          </span>
         </div>
 
         <div className="clip-actions">
@@ -74,7 +81,7 @@ export function ClipCard({ clip, onCopy, onDelete, onTogglePin, onMoveToVault }:
               <path d="m12 17-7 4 1.5-7.5L2 9l7.5-1L12 2l2.5 6L22 9l-4.5 4.5L19 21z"/>
             </svg>
           </button>
-          {onMoveToVault && (
+          {onMoveToVault && !isImage && (
             <button className="clip-btn" onClick={handleMoveToVault} title="Move to Quilvault">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="10" rx="2"/>
@@ -82,11 +89,13 @@ export function ClipCard({ clip, onCopy, onDelete, onTogglePin, onMoveToVault }:
               </svg>
             </button>
           )}
+          {!isImage && (
           <button className="clip-btn" onClick={() => setQuilvertOpen(true)} title="Quilvert — clean up text">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="m15 4 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z"/>
             </svg>
           </button>
+          )}
           <button className="clip-btn clip-btn--danger" onClick={onDelete} title="Delete">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>

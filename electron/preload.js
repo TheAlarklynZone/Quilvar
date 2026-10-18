@@ -7,6 +7,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearAllClips: () => ipcRenderer.invoke('clips:clear-all'),
   togglePin: (id) => ipcRenderer.invoke('clips:toggle-pin', id),
   copyClip: (content) => ipcRenderer.invoke('clips:copy', content),
+  copyClipById: (id) => ipcRenderer.invoke('clips:copy-clip', id),
+
+  // Quick Draw overlay
+  quickDrawSelect: (id) => ipcRenderer.invoke('quickdraw:select', id),
+  quickDrawClose: () => ipcRenderer.invoke('quickdraw:close'),
+
+  // Settings
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  setHotkey: (accelerator) => ipcRenderer.invoke('settings:set-hotkey', accelerator),
+  resetHotkey: () => ipcRenderer.invoke('settings:reset-hotkey'),
+  suspendHotkey: () => ipcRenderer.invoke('settings:suspend-hotkey'),
+  resumeHotkey: () => ipcRenderer.invoke('settings:resume-hotkey'),
+  setLaunchAtStartup: (enabled) => ipcRenderer.invoke('settings:set-launch', enabled),
 
   // App
   quit: () => ipcRenderer.invoke('app:quit'),

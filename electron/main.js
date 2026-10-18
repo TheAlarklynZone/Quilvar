@@ -1,14 +1,30 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, clipboard, ipcMain, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, clipboard, ipcMain, globalShortcut, screen } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const { execFile } = require('child_process');
+const { createHash } = require('crypto');
 const path = require('path');
 const db = require('./db');
 
 const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
 
+const DEFAULT_HOTKEY = 'Shift+Alt+V';
+const MAC_ALIAS_HOTKEY = 'Command+Shift+V';
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const LOGIN_ARGS = ['--hidden'];
+
 let mainWindow = null;
+let quickDrawWindow = null;
 let tray = null;
 let clipboardWatcher = null;
 let lastClipText = '';
+let lastImageHash = '';
+let currentHotkey = DEFAULT_HOTKEY;
+let registeredHotkeys = [];
+
+// Launched by the OS at login → stay in the tray instead of popping a window.
+const startHidden =
+  process.argv.includes('--hidden') ||
+  (process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin);
 
 // ── App single instance lock ──────────────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
@@ -27,7 +43,7 @@ function createWindow() {
     height: 620,
     minWidth: 700,
     minHeight: 500,
-    show: true,
+    show: !startHidden,
     frame: true,
     resizable: true,
     backgroundColor: '#0f0e0d',
@@ -54,6 +70,96 @@ function createWindow() {
     e.preventDefault();
     mainWindow.hide();
   });
+}
+
+// ── Quick Draw overlay ────────────────────────────────────────────────────────
+// A small frameless window that floats over whatever app you're in. It's
+// created up front (hidden) so the hotkey feels instant.
+function createQuickDrawWindow() {
+  quickDrawWindow = new BrowserWindow({
+    width: 560,
+    height: 440,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  quickDrawWindow.setAlwaysOnTop(true, 'screen-saver');
+  quickDrawWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  if (isDev) {
+    quickDrawWindow.loadURL('http://localhost:5173/#quickdraw');
+  } else {
+    quickDrawWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { hash: 'quickdraw' });
+  }
+
+  quickDrawWindow.on('blur', () => {
+    if (quickDrawWindow && quickDrawWindow.isVisible()) quickDrawWindow.hide();
+  });
+}
+
+function showQuickDraw() {
+  if (!quickDrawWindow || quickDrawWindow.isDestroyed()) createQuickDrawWindow();
+
+  // Open on whichever screen the cursor is on, a little above centre.
+  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const [w, h] = quickDrawWindow.getSize();
+  quickDrawWindow.setPosition(
+    Math.round(workArea.x + (workArea.width - w) / 2),
+    Math.round(workArea.y + (workArea.height - h) / 3),
+  );
+  quickDrawWindow.show();
+  quickDrawWindow.focus();
+  quickDrawWindow.webContents.send('quickdraw:open');
+}
+
+function toggleQuickDraw() {
+  if (quickDrawWindow && !quickDrawWindow.isDestroyed() && quickDrawWindow.isVisible()) {
+    hideQuickDraw();
+  } else {
+    showQuickDraw();
+  }
+}
+
+function hideQuickDraw() {
+  if (!quickDrawWindow || quickDrawWindow.isDestroyed()) return;
+  quickDrawWindow.hide();
+  // On macOS hiding a window leaves Quilvar frontmost; hide the app so focus
+  // returns to the app the user was typing in.
+  if (process.platform === 'darwin') app.hide();
+}
+
+// Types Ctrl/Cmd+V into whichever app now has focus. Done through each OS's own
+// scripting host so there's no native module to build. If it isn't available
+// (no Accessibility permission, no xdotool) the clip is still on the clipboard.
+function simulatePaste() {
+  const done = (err) => { if (err && isDev) console.warn('[quilvar] auto-paste unavailable:', err.message); };
+  if (process.platform === 'win32') {
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command',
+        "(New-Object -ComObject WScript.Shell).SendKeys('^v')"],
+      { windowsHide: true },
+      done,
+    );
+  } else if (process.platform === 'darwin') {
+    execFile('osascript', ['-e', 'tell application "System Events" to keystroke "v" using command down'], done);
+  } else {
+    execFile('xdotool', ['key', '--clearmodifiers', 'ctrl+v'], done);
+  }
 }
 
 // ── System tray ───────────────────────────────────────────────────────────────
@@ -108,16 +214,60 @@ function createTray() {
 }
 
 // ── Clipboard watcher ─────────────────────────────────────────────────────────
+function hashBitmap(image) {
+  return createHash('sha1').update(image.toBitmap()).digest('hex');
+}
+
+function broadcastClip(clip) {
+  if (mainWindow && clip) mainWindow.webContents.send('clip:new', clip);
+}
+
+function captureImage() {
+  if (!clipboard.availableFormats().some((f) => f.startsWith('image/'))) return;
+  const image = clipboard.readImage();
+  if (image.isEmpty()) return;
+
+  const hash = hashBitmap(image);
+  if (hash === lastImageHash) return;
+  lastImageHash = hash;
+
+  const png = image.toPNG();
+  if (png.length > MAX_IMAGE_BYTES) return;
+
+  const { width, height } = image.getSize();
+  const thumb = width > 260 ? image.resize({ width: 260 }) : image;
+  broadcastClip(db.addImageClip({ png, hash, width, height, thumbnail: thumb.toDataURL() }));
+}
+
 function startClipboardWatcher() {
   lastClipText = clipboard.readText();
+  const initial = clipboard.readImage();
+  lastImageHash = initial.isEmpty() ? '' : hashBitmap(initial);
+
   clipboardWatcher = setInterval(() => {
     const text = clipboard.readText();
     if (text && text !== lastClipText && text.trim().length > 0) {
       lastClipText = text;
-      const clip = db.addClip(text);
-      if (mainWindow && clip) mainWindow.webContents.send('clip:new', clip);
+      broadcastClip(db.addClip(text));
+    } else if (!text) {
+      captureImage();
     }
   }, 500);
+}
+
+// Puts a stored clip back on the system clipboard (text or image) and marks it
+// as already-seen so the watcher doesn't re-capture it.
+function writeClipToClipboard(clip) {
+  if (clip.type === 'image') {
+    const file = db.getClipImagePath(clip.id);
+    if (!file) return false;
+    clipboard.writeImage(nativeImage.createFromPath(file));
+    lastImageHash = hashBitmap(clipboard.readImage());
+  } else {
+    clipboard.writeText(clip.content);
+    lastClipText = clip.content;
+  }
+  return true;
 }
 
 // ── Auto updater ────────────────────────────────────────────────────────────────
@@ -157,6 +307,27 @@ function registerIPC() {
     lastClipText = content;
     return true;
   });
+  ipcMain.handle('clips:copy-clip', (_, id) => {
+    const clip = db.getClipById(id);
+    return clip ? writeClipToClipboard(clip) : false;
+  });
+  ipcMain.handle('quickdraw:select', (_, id) => {
+    const clip = db.getClipById(id);
+    if (!clip || !writeClipToClipboard(clip)) { hideQuickDraw(); return false; }
+    hideQuickDraw();
+    // Give the OS a beat to hand focus back before sending the keystroke.
+    setTimeout(simulatePaste, 150);
+    return true;
+  });
+  ipcMain.handle('quickdraw:close', () => hideQuickDraw());
+
+  ipcMain.handle('settings:get', () => getSettings());
+  ipcMain.handle('settings:set-hotkey', (_, accelerator) => setHotkey(accelerator));
+  ipcMain.handle('settings:reset-hotkey', () => setHotkey(DEFAULT_HOTKEY));
+  ipcMain.handle('settings:suspend-hotkey', () => { unregisterHotkeys(); return true; });
+  ipcMain.handle('settings:resume-hotkey', () => { registerHotkeys(currentHotkey); return true; });
+  ipcMain.handle('settings:set-launch', (_, enabled) => setLaunchAtStartup(!!enabled));
+
   ipcMain.handle('app:quit', () => { app.isQuitting = true; app.quit(); });
   ipcMain.handle('app:version', () => app.getVersion());
   ipcMain.handle('app:storage-path', () => app.getPath('userData'));
@@ -193,22 +364,69 @@ function registerIPC() {
   ipcMain.handle('vault:restore', (_, id) => db.restoreFromVault(id));
 }
 
-// ── Global shortcut (QuickDraw) ───────────────────────────────────────────────
-function registerShortcuts() {
-  const openQuickDraw = () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible() && mainWindow.isFocused()) { mainWindow.hide(); }
-      else { mainWindow.show(); mainWindow.focus(); mainWindow.webContents.send('quickdraw:open'); }
-    }
-  };
+// ── Settings: global shortcut + launch at startup ─────────────────────────────
+function unregisterHotkeys() {
+  registeredHotkeys.forEach((accel) => globalShortcut.unregister(accel));
+  registeredHotkeys = [];
+}
 
-  // Shift+Alt+V is the primary shortcut on every platform, including macOS.
-  globalShortcut.register('Shift+Alt+V', openQuickDraw);
+// Registers the Quick Draw hotkey; returns false (and leaves nothing
+// registered) if the OS refuses it — invalid, or already taken by another app.
+function registerHotkeys(accelerator) {
+  unregisterHotkeys();
+  const wanted = [accelerator];
+  // macOS also gets the Cmd+Shift+V convention alongside the default shortcut.
+  if (process.platform === 'darwin' && accelerator === DEFAULT_HOTKEY) wanted.push(MAC_ALIAS_HOTKEY);
 
-  // macOS also gets the Cmd+Shift+V convention, in addition to the above.
-  if (process.platform === 'darwin') {
-    globalShortcut.register('Command+Shift+V', openQuickDraw);
+  for (const accel of wanted) {
+    let ok = false;
+    try { ok = globalShortcut.register(accel, toggleQuickDraw); } catch { ok = false; }
+    if (ok) registeredHotkeys.push(accel);
+    else if (accel === accelerator) { unregisterHotkeys(); return false; }
   }
+  return true;
+}
+
+function setHotkey(accelerator) {
+  const previous = currentHotkey;
+  if (typeof accelerator !== 'string' || !accelerator.trim()) {
+    return { ok: false, error: 'Invalid shortcut.', hotkey: previous };
+  }
+  if (!registerHotkeys(accelerator)) {
+    registerHotkeys(previous);
+    return { ok: false, error: 'That shortcut is taken by another app or isn\'t supported.', hotkey: previous };
+  }
+  currentHotkey = accelerator;
+  if (accelerator === DEFAULT_HOTKEY) db.deleteSetting('hotkey');
+  else db.setSetting('hotkey', accelerator);
+  return { ok: true, hotkey: accelerator };
+}
+
+// Login items are only supported on macOS and Windows, and a dev run would
+// register the bare Electron binary, so both are reported as unsupported.
+const launchSupported = () => app.isPackaged && process.platform !== 'linux';
+
+function setLaunchAtStartup(enabled) {
+  if (!launchSupported()) return false;
+  app.setLoginItemSettings({ openAtLogin: enabled, args: LOGIN_ARGS });
+  return app.getLoginItemSettings({ args: LOGIN_ARGS }).openAtLogin;
+}
+
+function getSettings() {
+  return {
+    hotkey: currentHotkey,
+    defaultHotkey: DEFAULT_HOTKEY,
+    launchSupported: launchSupported(),
+    launchAtStartup: launchSupported() && app.getLoginItemSettings({ args: LOGIN_ARGS }).openAtLogin,
+  };
+}
+
+function registerShortcuts() {
+  const saved = db.getSetting('hotkey', DEFAULT_HOTKEY);
+  if (registerHotkeys(saved)) { currentHotkey = saved; return; }
+  // A saved shortcut that no longer registers falls back to the default.
+  currentHotkey = DEFAULT_HOTKEY;
+  registerHotkeys(DEFAULT_HOTKEY);
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
@@ -216,6 +434,7 @@ app.whenReady().then(() => {
   db.init();
   registerIPC();
   createWindow();
+  createQuickDrawWindow();
   createTray();
   registerShortcuts();
   startClipboardWatcher();

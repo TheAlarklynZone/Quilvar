@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { useClipStore } from "../store/clips";
 import { formatTimeAgo } from "../lib/time";
 import type { Clip } from "../types/clip";
 
 interface QuickDrawProps {
   clips: Clip[];
+  onSelect: (clip: Clip) => void;
   onClose: () => void;
 }
 
-export function QuickDraw({ clips, onClose }: QuickDrawProps) {
+export function QuickDraw({ clips, onSelect, onClose }: QuickDrawProps) {
   const [query, setQuery] = useState("");
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { copyToClipboard } = useClipStore();
 
   const filtered = clips.filter((c) =>
     c.content.toLowerCase().includes(query.toLowerCase())
@@ -41,15 +40,10 @@ export function QuickDraw({ clips, onClose }: QuickDrawProps) {
         break;
       case "Enter":
         if (filtered[selectedIdx]) {
-          handleSelect(filtered[selectedIdx]);
+          onSelect(filtered[selectedIdx]);
         }
         break;
     }
-  }
-
-  async function handleSelect(clip: Clip) {
-    await copyToClipboard(clip.content);
-    onClose();
   }
 
   return (
@@ -86,14 +80,21 @@ export function QuickDraw({ clips, onClose }: QuickDrawProps) {
                 className={`quick-draw-item ${
                   idx === selectedIdx ? "quick-draw-item--focused" : ""
                 }`}
-                onClick={() => handleSelect(clip)}
+                onClick={() => onSelect(clip)}
                 onMouseEnter={() => setSelectedIdx(idx)}
               >
-                <span className="quick-draw-item-text">
-                  {clip.pinned && "📌 "}
-                  {clip.content.slice(0, 120)}
-                  {clip.content.length > 120 ? "…" : ""}
-                </span>
+                {clip.type === "image" && clip.thumbnail ? (
+                  <span className="quick-draw-item-text quick-draw-item-image">
+                    <img src={clip.thumbnail} alt="" />
+                    {clip.content}
+                  </span>
+                ) : (
+                  <span className="quick-draw-item-text">
+                    {clip.pinned && "📌 "}
+                    {clip.content.slice(0, 120)}
+                    {clip.content.length > 120 ? "…" : ""}
+                  </span>
+                )}
                 <span className="quick-draw-item-time">{formatTimeAgo(clip.timestamp)}</span>
               </button>
             ))

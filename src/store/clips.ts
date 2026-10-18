@@ -1,6 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Clip, Quiver } from "../types/clip";
 
+export interface AppSettings {
+  hotkey: string;
+  defaultHotkey: string;
+  launchSupported: boolean;
+  launchAtStartup: boolean;
+}
+
 // Typed electronAPI from preload
 declare global {
   interface Window {
@@ -10,6 +17,17 @@ declare global {
       clearAllClips: () => Promise<number>;
       togglePin: (id: string) => Promise<Clip>;
       copyClip: (content: string) => Promise<boolean>;
+      copyClipById: (id: string) => Promise<boolean>;
+      quickDrawSelect: (id: string) => Promise<boolean>;
+      quickDrawClose: () => Promise<void>;
+
+      // Settings
+      getSettings: () => Promise<AppSettings>;
+      setHotkey: (accelerator: string) => Promise<{ ok: boolean; hotkey: string; error?: string }>;
+      resetHotkey: () => Promise<{ ok: boolean; hotkey: string; error?: string }>;
+      suspendHotkey: () => Promise<boolean>;
+      resumeHotkey: () => Promise<boolean>;
+      setLaunchAtStartup: (enabled: boolean) => Promise<boolean>;
       quit: () => Promise<void>;
       getVersion: () => Promise<string>;
       getStoragePath: () => Promise<string>;
@@ -127,6 +145,11 @@ export function useClipStore() {
     }
   }, []);
 
+  // Copies a stored clip — text or image — back onto the system clipboard.
+  const copyClip = useCallback(async (clip: Clip) => {
+    await window.electronAPI.copyClipById(clip.id);
+  }, []);
+
   const moveToVault = useCallback(async (id: string) => {
     await window.electronAPI.addToVault(id);
     _clips = _clips.filter((c) => c.id !== id);
@@ -141,6 +164,7 @@ export function useClipStore() {
     clearAll,
     togglePin,
     copyToClipboard,
+    copyClip,
     moveToVault,
   };
 }
